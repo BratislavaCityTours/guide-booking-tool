@@ -1001,11 +1001,13 @@ function openStorno(id, h){
   nav('compose');
   window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
 }
+
+function exitAmend(){
   amendId=null;
   document.getElementById('abanner').style.display='none';
-  document.getElementById('c-title').textContent='Nový email';
-  document.getElementById('c-sub').textContent='Vyplň detaily, vyber objednávateľa a odošli do Outlooku jedným klikom.';
-  document.getElementById('gen-lbl').textContent='Vygenerovať email';
+  document.getElementById('c-title').textContent='Novy email';
+  document.getElementById('c-sub').textContent='Vypln detaily, vyber objednavatela a odosli do Outlooku jednym klikom.';
+  document.getElementById('gen-lbl').textContent='Vygenerovat email';
 }
 
 // ── History ───────────────────────────────────────────────
