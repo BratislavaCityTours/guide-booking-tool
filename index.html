@@ -330,7 +330,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
 
       <div class="out" id="out"></div>
       <div class="out-acts" id="out-acts">
-        <a class="btn btn-ol" href="#" onclick="openOutlook(event)">
+        <a class="btn btn-ol" id="outlook-btn" href="#" onclick="openOutlook(event)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8l10 6 10-6"/></svg>
           Otvoriť v Outlooku
         </a>
@@ -929,7 +929,78 @@ function openAmend(id,h){
   nav('compose');window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function exitAmend(){
+function openStorno(id, h){
+  if(!confirm('Vygenerovat storno celej objednavky?')) return;
+
+  const sender = getSender();
+  if(!sender){ alert('Vyber objednavatela v compose.'); nav('compose'); return; }
+
+  const date = h.date ? fmtDate(h.date) : '-';
+  const guideName = h.guide_name || 'Guide';
+  const guideEmail = (() => {
+    const sel = document.getElementById('f-guide');
+    // Try to find guide email from cache
+    const g = guidesCache.find(x => x.id === h.guide_id);
+    return g ? g.email : '';
+  })();
+
+  let clients = [];
+  try { clients = JSON.parse(h.clients || '[]'); } catch {}
+  const activeClients = clients.filter(c => !c.cancelled);
+
+  const lines = [];
+  lines.push('Dobry den,');
+  lines.push('');
+  lines.push('Zasielam Vam storno objednavky.');
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+  lines.push('Servis: ' + (h.duration||'') + ' ' + (h.service_type==='gct'?'Grand City Tour':h.service_type==='combo'?'Grand City Tour + Walking Tour':'Walking Tour'));
+  lines.push('Datum: ' + date);
+  if(h.meeting) lines.push('Cas: ' + h.meeting);
+  lines.push('');
+  lines.push('STORNO - vsetci klienti:');
+  activeClients.forEach((c,i) => {
+    lines.push('');
+    lines.push((i+1)+'.)');
+    if(c.name) lines.push('Klient: '+c.name+(c.pax?', '+c.pax+' pax':''));
+    if(c.voucher) lines.push('Voucher: '+c.voucher);
+  });
+  lines.push('');
+  lines.push('Poprosim Vas o kratke potvrdenie.');
+  lines.push('');
+  lines.push('S pozdravom,');
+  lines.push('');
+  lines.push(sender.name);
+  lines.push(sender.email);
+  lines.push(sender.phone);
+
+  const txt = lines.join('\n');
+
+  // Build subject
+  const clientParts = activeClients.map(c => (c.name||'')+(c.pax?', '+c.pax+' pax':'')+(c.voucher?', '+c.voucher:'')).filter(Boolean);
+  const subj = 'Storno objednavky, '+guideName+', '+date+(clientParts.length?', '+clientParts.slice(0,2).join(' | '):'');
+
+  // Show in compose
+  const out = document.getElementById('out');
+  out.textContent = txt;
+  out.style.display = 'block';
+  lastTxt = txt;
+  lastSubj = subj;
+
+  // Update outlook button
+  document.getElementById('out-acts').style.display = 'flex';
+
+  // Override outlook to use correct guide email
+  const outlookBtn = document.getElementById('outlook-btn');
+  if(outlookBtn && guideEmail){
+    outlookBtn.href = 'mailto:'+encodeURIComponent(guideEmail)+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(txt);
+    outlookBtn.onclick = null;
+  }
+
+  nav('compose');
+  window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
+}
   amendId=null;
   document.getElementById('abanner').style.display='none';
   document.getElementById('c-title').textContent='Nový email';
@@ -989,6 +1060,7 @@ function filterHistory(){
       </div>
       <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
         <button class="btn btn-w" style="font-size:12px;padding:5px 9px;" onclick="openAmend('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Zmena</button>
+        <button class="btn btn-d" style="font-size:12px;padding:5px 9px;" onclick="openStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Storno</button>
       </div>
     </div>`;
   }).join('');
