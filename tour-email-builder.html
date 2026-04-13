@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tour Email Builder — e-travel.sk</title>
+<style>
+:root{
+  --bg:#f5f3ef;--surface:#fff;--surface2:#f0ede8;--border:#ddd9d2;--border2:#ccc8c0;
+  --text:#1a1916;--text2:#6b6760;--text3:#9b9890;
+  --accent:#2d5a3d;--accent-l:#e8f0eb;
+  --danger:#c0392b;--danger-l:#fdf0ef;
+  --warn:#b07d1a;--warn-l:#fdf6e3;
+  --blue:#0078d4;--blue-l:#eaf2fb;
+  --r:8px;--rl:12px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --mono:'Courier New',Courier,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
+.app{display:flex;min-height:100vh;}
+.sb{width:250px;min-width:250px;background:#1a1916;color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;}
+.sb-head{padding:24px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.sb-logo{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:4px;}
+.sb-title{font-size:17px;font-weight:600;color:#fff;}
+.sb-sub{font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px;font-family:var(--mono);}
+.sb-nav{padding:14px 10px;flex:1;}
+.nl{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.28);padding:0 10px;margin:14px 0 6px;}
+.nl:first-child{margin-top:0;}
+.nb{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:none;background:none;color:rgba(255,255,255,0.6);border-radius:var(--r);cursor:pointer;font-family:var(--font);font-size:14px;text-align:left;transition:background 0.15s,color 0.15s;}
+.nb:hover{background:rgba(255,255,255,0.07);color:#fff;}
+.nb.on{background:rgba(255,255,255,0.11);color:#fff;font-weight:500;}
+.ni{width:15px;height:15px;opacity:0.65;flex-shrink:0;}
+.nb.on .ni{opacity:1;}
+.main{margin-left:250px;flex:1;padding:36px 44px;max-width:calc(100vw - 250px);}
+.pg{display:none;}.pg.on{display:block;}
+.ph{margin-bottom:28px;padding-bottom:22px;border-bottom:1px solid var(--border);}
+.ph h1{font-size:24px;font-weight:600;letter-spacing:-0.02em;margin-bottom:3px;}
+.ph p{color:var(--text2);font-size:14px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:22px;margin-bottom:14px;}
+.ct{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:16px;font-family:var(--mono);}
+label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px;margin-top:13px;}
+label:first-child{margin-top:0;}
+input,textarea,select{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:14px;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.15s;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,90,61,0.08);}
+input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--surface2);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.stabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;}
+.stab{padding:7px 14px;border:1px solid var(--border2);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);background:var(--surface);transition:all 0.15s;white-space:nowrap;}
+.stab:hover{border-color:var(--accent);color:var(--accent);}
+.stab.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.pbox{background:var(--accent-l);border:1px solid #b6d4bc;border-radius:var(--r);padding:11px 15px;display:flex;align-items:center;justify-content:space-between;margin-top:13px;}
+.pbox-l{font-size:12px;color:var(--accent);font-weight:600;}
+.pbox-s{font-size:11px;color:var(--text2);margin-top:2px;}
+.pbox-v{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--accent);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:var(--r);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all 0.15s;text-decoration:none;}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-p:hover{background:#234a31;}
+.btn-ol{background:var(--blue);color:#fff;border-color:var(--blue);font-size:15px;padding:10px 20px;}
+.btn-ol:hover{background:#006abc;}
+.btn-s{background:var(--surface);color:var(--text);border-color:var(--border2);}
+.btn-s:hover{background:var(--surface2);}
+.btn-g{background:none;color:var(--text2);border-color:var(--border);padding:6px 11px;font-size:13px;}
+.btn-g:hover{background:var(--surface2);color:var(--text);}
+.btn-d{background:none;color:var(--danger);border-color:var(--danger-l);padding:6px 11px;font-size:13px;}
+.btn-d:hover{background:var(--danger-l);}
+.btn-w{background:none;color:var(--warn);border-color:var(--warn-l);padding:6px 11px;font-size:13px;}
+.btn-w:hover{background:var(--warn-l);}
+.btn-fw{width:100%;justify-content:center;}
+.btn-dash{width:100%;border:1.5px dashed var(--border2);background:none;color:var(--text2);padding:9px;border-radius:var(--r);font-size:14px;cursor:pointer;font-family:var(--font);transition:all 0.15s;margin-top:7px;}
+.btn-dash:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-l);}
+.pax{display:flex;align-items:center;gap:7px;margin-top:2px;}
+.pax button{width:30px;height:30px;border:1px solid var(--border2);background:var(--surface);border-radius:var(--r);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;color:var(--text);transition:background 0.12s;}
+.pax button:hover:not(:disabled){background:var(--surface2);}
+.pax button:disabled{opacity:0.35;cursor:not-allowed;}
+.pax-n{font-family:var(--mono);font-size:16px;font-weight:600;min-width:30px;text-align:center;}
+.cb{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:11px;}
+.cb.gone{opacity:0.45;border-style:dashed;}
+.cb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-wrap:wrap;gap:7px;}
+.cbadge{font-family:var(--mono);font-size:11px;font-weight:600;background:var(--text);color:#fff;padding:2px 8px;border-radius:4px;letter-spacing:0.04em;}
+.cbadge.red{background:var(--danger);}
+.abanner{background:var(--warn-l);border:1px solid #e6c97a;border-radius:var(--r);padding:11px 15px;margin-bottom:14px;display:flex;align-items:center;gap:11px;font-size:13px;color:var(--warn);flex-wrap:wrap;}
+.out{background:#1a1916;color:#e8e4dc;border-radius:var(--rl);padding:22px;font-family:var(--mono);font-size:13px;line-height:1.9;white-space:pre-wrap;display:none;margin-top:14px;}
+.out-acts{display:none;gap:9px;margin-top:11px;flex-wrap:wrap;align-items:center;}
+.sender-card{background:var(--accent-l);border:1px solid #b6d4bc;border-radius:var(--r);padding:12px 15px;margin-top:11px;}
+.sender-name{font-weight:600;font-size:14px;color:var(--accent);}
+.sender-detail{font-size:12px;color:var(--text2);margin-top:2px;}
+.gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:13px;}
+.gc{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:18px;display:flex;flex-direction:column;gap:11px;}
+.gav{width:42px;height:42px;border-radius:50%;background:var(--accent-l);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;font-family:var(--mono);flex-shrink:0;}
+.gt{display:flex;align-items:center;gap:13px;}
+.gi{flex:1;min-width:0;}
+.gn{font-weight:600;font-size:15px;color:var(--text);}
+.ge{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gl{font-size:11px;color:var(--text3);margin-top:1px;font-family:var(--mono);}
+.ga{display:flex;gap:7px;padding-top:9px;border-top:1px solid var(--border);}
+.hi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:9px;display:flex;align-items:flex-start;gap:14px;transition:border-color 0.15s;}
+.hi:hover{border-color:var(--border2);}
+.hd{font-family:var(--mono);font-size:11px;color:var(--text3);min-width:85px;padding-top:2px;line-height:1.8;}
+.hinfo{flex:1;}
+.hg{font-weight:600;font-size:14px;color:var(--text);}
+.hc{font-size:13px;color:var(--text2);margin-top:2px;}
+.pill{font-size:10px;letter-spacing:0.04em;text-transform:uppercase;padding:2px 6px;border-radius:4px;font-weight:600;display:inline-block;font-family:var(--mono);}
+.pw{background:var(--warn-l);color:var(--warn);}
+.pb{background:var(--blue-l);color:var(--blue);}
+.setup{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;}
+.setup-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:32px;width:460px;max-width:calc(100vw - 32px);}
+.setup-box h2{font-size:20px;font-weight:600;margin-bottom:6px;}
+.setup-box p{color:var(--text2);font-size:13px;margin-bottom:22px;}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:500;}
+.mo.on{display:flex;}
+.modal{background:var(--surface);border-radius:var(--rl);padding:26px;width:460px;max-width:calc(100vw - 32px);box-shadow:0 8px 32px rgba(0,0,0,0.18);max-height:90vh;overflow-y:auto;}
+.modal h2{font-size:17px;font-weight:600;margin-bottom:18px;}
+.ma{display:flex;gap:9px;margin-top:18px;justify-content:flex-end;}
+.gsr{display:flex;gap:9px;align-items:flex-end;}
+.gsr select{flex:1;}
+.load{text-align:center;padding:36px;color:var(--text3);font-size:13px;}
+.empty{text-align:center;padding:44px 22px;color:var(--text3);}
+.empty p{font-size:14px;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+@media(max-width:750px){
+  .sb{width:190px;min-width:190px;}
+  .main{margin-left:190px;padding:20px;}
+  .g2{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="setup" id="setup">
+  <div class="setup-box">
+    <h2>⚙️ Konfigurácia pripojenia</h2>
+    <p>Zadaj Supabase údaje pre zdieľanú databázu. Každý zamestnanec to urobí raz.</p>
+    <label>Supabase Project URL</label>
+    <input type="text" id="cfg-url" placeholder="https://xxxxxxxxxxxx.supabase.co" style="font-family:var(--mono);font-size:12px;margin-bottom:12px;">
+    <label>Supabase Anon Key</label>
+    <input type="text" id="cfg-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="font-family:var(--mono);font-size:12px;margin-bottom:18px;">
+    <button class="btn btn-p btn-fw" style="padding:11px;" onclick="saveConfig()">Pripojiť a spustiť appku</button>
+    <p style="margin-top:12px;font-size:11px;color:var(--text3);">Údaje sa uložia len v tomto prehliadači.</p>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none;">
+  <aside class="sb">
+    <div class="sb-head">
+      <div class="sb-logo">e-travel.sk</div>
+      <div class="sb-title">Email Builder</div>
+      <div class="sb-sub" id="sb-sender">—</div>
+    </div>
+    <nav class="sb-nav">
+      <div class="nl">Compose</div>
+      <button class="nb on" onclick="resetForm();nav('compose')">
+        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6M5 5h6M5 11h3"/></svg>
+        Nový email
+      </button>
+      <div class="nl">Manage</div>
+      <button class="nb" onclick="nav('guides')">
+        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5"/></svg>
+        Guides
+      </button>
+      <button class="nb" onclick="nav('history')">
+        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        História
+      </button>
+      <div class="nl" style="margin-top:20px;"></div>
+      <button class="nb" onclick="resetConfig()" style="font-size:12px;">
+        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8a6 6 0 1010.93-3.36M2 8V4m0 4H6"/></svg>
+        Zmeniť DB pripojenie
+      </button>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <!-- COMPOSE -->
+    <div class="pg on" id="pg-compose">
+      <div class="ph">
+        <h1 id="c-title">Nový email</h1>
+        <p id="c-sub">Vyplň detaily, vyber objednávateľa a odošli do Outlooku jedným klikom.</p>
+      </div>
+
+      <div id="abanner" class="abanner" style="display:none;">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
+        <span><strong>Režim zmeny</strong> — upravuješ existujúcu objednávku.</span>
+        <button class="btn btn-g" style="margin-left:auto;font-size:12px;" onclick="exitAmend()">Zrušiť</button>
+      </div>
+
+      <!-- Sender -->
+      <div class="card">
+        <div class="ct">Objednávateľ (odosielateľ)</div>
+        <label>Vyber objednávateľa</label>
+        <select id="f-sender" onchange="onSender()">
+          <option value="">— Vyber —</option>
+          <option value="andrej">Andrej Stanik</option>
+          <option value="gabriela">Gabriela Stanikova</option>
+          <option value="igor">Igor Stanik</option>
+          <option value="katarina">Katarina Stanik</option>
+        </select>
+        <div id="sender-info" style="display:none;" class="sender-card">
+          <div class="sender-name" id="sender-name"></div>
+          <div class="sender-detail" id="sender-detail"></div>
+        </div>
+      </div>
+
+      <!-- Service type -->
+      <div class="card">
+        <div class="ct">Typ služby</div>
+        <div class="stabs">
+          <button class="stab on" onclick="setSvc('walk')" id="t-walk">1 hod · Walking Tour</button>
+          <button class="stab" onclick="setSvc('gct')" id="t-gct">Grand City Tour (3 hod)</button>
+          <button class="stab" onclick="setSvc('combo')" id="t-combo">Kombinácia GCT + 1 hod</button>
+        </div>
+
+        <!-- Walking -->
+        <div id="s-walk">
+          <label>Jazyk</label>
+          <select id="w-lang" onchange="updateWalkPrice()">
+            <option value="EN">Angličtina</option>
+            <option value="DE">Nemčina</option>
+            <option value="ES">Španielčina</option>
+            <option value="FR">Francúzština</option>
+            <option value="IT">Taliančina</option>
+          </select>
+          <div class="pbox" style="margin-top:13px;">
+            <div>
+              <div class="pbox-l">Cena · Walking Tour · 1 hod</div>
+              <div class="pbox-s" id="walk-price-sub">vyber jazyk a počet osôb</div>
+            </div>
+            <div class="pbox-v" id="walk-price-val">— EUR</div>
+          </div>
+        </div>
+
+        <!-- GCT -->
+        <div id="s-gct" style="display:none;">
+          <label>Jazyk</label>
+          <select id="gct-lang" onchange="updateGCT()">
+            <option value="EN">Angličtina</option>
+            <option value="DE">Nemčina</option>
+            <option value="ES">Španielčina</option>
+            <option value="FR">Francúzština</option>
+            <option value="IT">Taliančina</option>
+          </select>
+          <div class="pbox" style="margin-top:13px;">
+            <div><div class="pbox-l">Grand City Tour · 3 hodiny</div><div class="pbox-s" id="gct-sub">Angličtina</div></div>
+            <div class="pbox-v" id="gct-pval">78 EUR</div>
+          </div>
+        </div>
+
+        <!-- Combo -->
+        <div id="s-combo" style="display:none;">
+          <label>Jazyk</label>
+          <select id="combo-lang" onchange="updateCombo()">
+            <option value="EN">Angličtina</option>
+            <option value="DE">Nemčina</option>
+            <option value="ES">Španielčina</option>
+            <option value="FR">Francúzština</option>
+            <option value="IT">Taliančina</option>
+          </select>
+          <div class="pbox" style="margin-top:13px;">
+            <div>
+              <div class="pbox-l">Kombinovaná cena (GCT 100% + Walking 50%)</div>
+              <div class="pbox-s" id="combo-brk">—</div>
+            </div>
+            <div class="pbox-v" id="combo-pval">— EUR</div>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:var(--text2);padding:8px 12px;background:var(--blue-l);border-radius:var(--r);">
+            ℹ️ Walking klienti končia po 1 hod. GCT klienti pokračujú ďalšie 2 hod s autom.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tour details -->
+      <div class="card">
+        <div class="ct">Detaily túry</div>
+        <div class="g2">
+          <div><label>Dátum</label><input type="date" id="f-date"></div>
+          <div><label>Trvanie</label><input type="text" id="f-dur" value="1 hod" readonly style="background:var(--surface2);"></div>
+        </div>
+        <label>Čas začiatku &amp; miesto stretnutia</label>
+        <input type="text" id="f-meet" placeholder="e.g. 12h00 pred PARK INN DANUBE / ako je vstup na recepciu hotela">
+
+        <!-- GCT / Combo extra fields -->
+        <div id="gct-extra" style="display:none;">
+          <label>Miesto a čas stretnutia s autom</label>
+          <input type="text" id="f-car" placeholder="e.g. 13:15 pred Pulitzer SNP — kontakt na vodiča dodáme">
+        </div>
+        <div id="combo-extra" style="display:none;">
+          <label>Koniec Walking časti (kedy odchádzajú Walking klienti)</label>
+          <input type="text" id="f-walk-end" placeholder="e.g. 13:00 v Pulitzer SNP">
+          <label>Miesto a čas stretnutia s autom (pre GCT klientov)</label>
+          <input type="text" id="f-car2" placeholder="e.g. 13:15 pred Pulitzer SNP — kontakt na vodiča dodáme">
+        </div>
+        <div id="gct-end-wrap" style="display:none;">
+          <label>Koniec celej túry</label>
+          <input type="text" id="f-end2" placeholder="e.g. 15h00 — GRAND CITY TOUR">
+        </div>
+
+        <label>Platba</label>
+        <input type="text" id="f-pay" value="FAKTURA NA ETRAVEL">
+      </div>
+
+      <!-- Guide -->
+      <div class="card">
+        <div class="ct">Guide (príjemca emailu)</div>
+        <div class="gsr">
+          <div style="flex:1;"><label>Vyber guide</label>
+            <select id="f-guide" onchange="onGuide()">
+              <option value="">— Vyber guide —</option>
+            </select>
+          </div>
+          <button class="btn btn-g" onclick="nav('guides')">Spravovať</button>
+        </div>
+        <div id="guide-info" style="display:none;margin-top:11px;padding:11px;background:var(--accent-l);border-radius:var(--r);font-size:13px;color:var(--accent);">
+          <span id="guide-info-txt"></span>
+        </div>
+      </div>
+
+      <!-- Clients -->
+      <div class="card">
+        <div class="ct">Klienti</div>
+        <div id="clist"></div>
+        <button class="btn-dash" onclick="addClient()">+ Pridať klienta</button>
+      </div>
+
+      <button class="btn btn-p btn-fw" style="padding:12px;font-size:15px;" onclick="generate()">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 8l4 4 8-8"/></svg>
+        <span id="gen-lbl">Vygenerovať email</span>
+      </button>
+
+      <div class="out" id="out"></div>
+      <div class="out-acts" id="out-acts">
+        <a class="btn btn-ol" href="#" onclick="openOutlook(event)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8l10 6 10-6"/></svg>
+          Otvoriť v Outlooku
+        </a>
+        <button class="btn btn-s" onclick="copyTxt()"><span id="copy-lbl">Kopírovať</span></button>
+        <button class="btn btn-g" onclick="saveHist()">Uložiť do histórie</button>
+        <button class="btn btn-g" onclick="resetForm()">Nový email</button>
+      </div>
+    </div>
+
+    <!-- GUIDES -->
+    <div class="pg" id="pg-guides">
+      <div class="ph"><h1>Guides</h1><p>Zdieľaná databáza — zmeny vidia všetci zamestnanci okamžite.</p></div>
+      <div style="margin-bottom:18px;"><button class="btn btn-p" onclick="openGM()">+ Pridať guide</button></div>
+      <div class="gg" id="glist"><div class="load">Načítavam...</div></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="pg" id="pg-history">
+      <div class="ph"><h1>História</h1><p>Všetky emaily od celého tímu. Klikni <strong>Zmena</strong> pre úpravu.</p></div>
+      <div style="margin-bottom:16px;position:relative;">
+        <input type="text" id="h-search" placeholder="🔍  Hľadaj podľa mena klienta, vouchera, guide alebo dátumu..." oninput="filterHistory()" style="padding-left:14px;font-size:14px;">
+        <button onclick="document.getElementById('h-search').value='';filterHistory();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);">×</button>
+      </div>
+      <div id="h-count" style="font-size:12px;color:var(--text3);margin-bottom:10px;"></div>
+      <div id="hlist"><div class="load">Načítavam...</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- Guide modal -->
+<div class="mo" id="gmodal">
+  <div class="modal">
+    <h2 id="gm-title">Pridať guide</h2>
+    <label>Meno a priezvisko</label><input type="text" id="gm-name" placeholder="e.g. Andrej Novak">
+    <label>Email</label><input type="email" id="gm-email" placeholder="e.g. andrej@guide.sk">
+    <label>Telefón</label><input type="text" id="gm-phone" placeholder="e.g. +421 900 000 000">
+    <label>Jazyk / špecializácia</label><input type="text" id="gm-lang" placeholder="e.g. English, Slovak">
+    <div class="ma">
+      <button class="btn btn-s" onclick="closeGM()">Zrušiť</button>
+      <button class="btn btn-p" onclick="saveGuide()">Uložiť</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Senders ───────────────────────────────────────────────
+const SENDERS = {
+  andrej:   { name:'Andrej Stanik',      email:'astanik@e-travel.sk',    phone:'+421 915 466 137' },
+  gabriela: { name:'Gabriela Stanikova', email:'gstanikova@e-travel.sk', phone:'+421 918 682 609' },
+  igor:     { name:'Igor Stanik',        email:'istanik@e-travel.sk',    phone:'+421 918 682 695' },
+  katarina: { name:'Katarina Stanik',    email:'kstanik@e-travel.sk',    phone:'+421 905 809 300' }
+};
+
+function onSender() {
+  const key = document.getElementById('f-sender').value;
+  const info = document.getElementById('sender-info');
+  if (!key) { info.style.display='none'; document.getElementById('sb-sender').textContent='—'; return; }
+  const s = SENDERS[key];
+  document.getElementById('sender-name').textContent = s.name;
+  document.getElementById('sender-detail').textContent = s.email + ' · ' + s.phone;
+  document.getElementById('sb-sender').textContent = s.name.split(' ')[0];
+  info.style.display = 'block';
+}
+function getSender() { const k=document.getElementById('f-sender').value; return k?SENDERS[k]:null; }
+
+// ── Pricing ───────────────────────────────────────────────
+const LANG_SK = { EN:'Anglictina', DE:'Nemcina', ES:'Spanielcina', FR:'Francuzstina', IT:'Taliancina' };
+const LANG_EN = { EN:'English', DE:'German', ES:'Spanish', FR:'French', IT:'Italian' };
+
+const WALK_TIERS = {
+  EN: [{max:1,p:26},{max:2,p:34},{max:5,p:40},{max:9,p:44},{max:999,p:46}],
+  DE: [{max:1,p:26},{max:2,p:34},{max:5,p:40},{max:9,p:44},{max:999,p:46}],
+  ES: [{max:1,p:44},{max:2,p:50},{max:5,p:58},{max:9,p:66},{max:999,p:70}],
+  FR: [{max:1,p:44},{max:2,p:50},{max:5,p:58},{max:9,p:66},{max:999,p:70}],
+  IT: [{max:1,p:44},{max:2,p:50},{max:5,p:58},{max:9,p:66},{max:999,p:70}]
+};
+const GCT_P = { EN:78, DE:78, ES:125, FR:125, IT:125 };
+
+function getWalkPrice(lang, pax) {
+  const tiers = WALK_TIERS[lang] || WALK_TIERS['EN'];
+  for (const t of tiers) { if (pax <= t.max) return t.p; }
+  return tiers[tiers.length-1].p;
+}
+
+function getTotalPax() {
+  return cIds.reduce((s,id)=>s+(cData[id]&&!cData[id].cancelled?(parseInt(cData[id].pax)||1):0),0)||1;
+}
+
+function updateWalkPrice() {
+  const lang = document.getElementById('w-lang').value;
+  const pax = getTotalPax();
+  const price = getWalkPrice(lang, pax);
+  document.getElementById('walk-price-val').textContent = price + ' EUR';
+  document.getElementById('walk-price-sub').textContent = LANG_SK[lang] + ' · ' + pax + (pax===1?' osoba':pax<5?' osoby':' osôb');
+}
+
+function updateGCT() {
+  const lang = document.getElementById('gct-lang').value;
+  document.getElementById('gct-pval').textContent = GCT_P[lang] + ' EUR';
+  document.getElementById('gct-sub').textContent = LANG_SK[lang];
+}
+
+function updateCombo() {
+  const lang = document.getElementById('combo-lang').value;
+  const walkPax = getWalkPaxCombo();
+  const gctPax = getGCTPaxCombo();
+  const gp = GCT_P[lang];
+  const wp = walkPax > 0 ? getWalkPrice(lang, walkPax) : 0;
+  const wh = Math.round(wp * 0.5);
+  const total = gp + wh;
+  document.getElementById('combo-pval').textContent = total + ' EUR';
+  if(walkPax > 0){
+    document.getElementById('combo-brk').textContent = 'GCT '+gp+' EUR ('+gctPax+' osob) + Walking '+wh+' EUR (50% z '+wp+' EUR, '+walkPax+' osob Walking)';
+  } else {
+    document.getElementById('combo-brk').textContent = 'GCT '+gp+' EUR — zatial bez Walking klientov';
+  }
+}
+
+function getWalkPaxCombo(){
+  return cIds.reduce((s,id)=>s+(cData[id]&&!cData[id].cancelled&&(cData[id].tour_type||'walk')==='walk'?(parseInt(cData[id].pax)||1):0),0)||0;
+}
+function getGCTPaxCombo(){
+  return cIds.reduce((s,id)=>s+(cData[id]&&!cData[id].cancelled&&cData[id].tour_type==='gct'?(parseInt(cData[id].pax)||1):0),0)||0;
+}
+
+function getSvcPrice() {
+  const pax = getTotalPax();
+  if (svc==='walk') return getWalkPrice(document.getElementById('w-lang').value, pax)+' EUR';
+  if (svc==='gct') return GCT_P[document.getElementById('gct-lang').value]+' EUR';
+  // combo - separate walk and gct pax
+  const lang = document.getElementById('combo-lang').value;
+  const walkPax = getWalkPaxCombo();
+  const gp = GCT_P[lang];
+  const wp = walkPax > 0 ? getWalkPrice(lang, walkPax) : 0;
+  return (gp + Math.round(wp*0.5))+' EUR';
+}
+
+function getSvcLang() {
+  if (svc==='walk') return document.getElementById('w-lang').value;
+  if (svc==='gct') return document.getElementById('gct-lang').value;
+  return document.getElementById('combo-lang').value;
+}
+
+// ── Supabase ──────────────────────────────────────────────
+let SB = null;
+
+async function loadSB() {
+  return new Promise(r=>{ const c=()=>{if(window.supabase&&window.supabase.createClient)r(true);else setTimeout(c,100);};c();});
+}
+
+async function initApp() {
+  await loadSB();
+  const url=localStorage.getItem('sb_url'), key=localStorage.getItem('sb_key');
+  if(!url||!key){showSetup();return;}
+  try {
+    SB=window.supabase.createClient(url,key);
+    const{error}=await SB.from('guides').select('id').limit(1);
+    if(error&&error.code!=='PGRST116')throw error;
+    showApp();
+  } catch(e){showSetup();}
+}
+
+function showSetup(){document.getElementById('setup').style.display='flex';document.getElementById('app').style.display='none';}
+function showApp(){document.getElementById('setup').style.display='none';document.getElementById('app').style.display='flex';refreshGuides();addClient();}
+
+async function saveConfig(){
+  const url=document.getElementById('cfg-url').value.trim().replace(/\/$/,'');
+  const key=document.getElementById('cfg-key').value.trim();
+  if(!url||!key){alert('Zadaj obe polia.');return;}
+  localStorage.setItem('sb_url',url);localStorage.setItem('sb_key',key);
+  await initApp();
+}
+function resetConfig(){if(!confirm('Zmeniť pripojenie?'))return;localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');SB=null;showSetup();}
+
+// ── Navigation ────────────────────────────────────────────
+function nav(page){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+page).classList.add('on');
+  const btn=document.querySelector('.nb[onclick="nav(\''+page+'\')"]');
+  if(btn)btn.classList.add('on');
+  if(page==='guides')renderGuides();
+  if(page==='history')renderHistory();
+  if(page==='compose')refreshGuides();
+}
+
+// ── Service type ──────────────────────────────────────────
+let svc='walk';
+
+function setSvc(type){
+  svc=type;
+  ['walk','gct','combo'].forEach(t=>{
+    document.getElementById('t-'+t).classList.toggle('on',t===type);
+    document.getElementById('s-'+t).style.display=t===type?'block':'none';
+  });
+  // Show/hide extra fields
+  document.getElementById('gct-extra').style.display=type==='gct'?'block':'none';
+  document.getElementById('combo-extra').style.display=type==='combo'?'block':'none';
+  document.getElementById('gct-end-wrap').style.display=(type==='gct'||type==='combo')?'block':'none';
+  // Duration
+  const dur=type==='walk'?'1 hod':'3 hod';
+  document.getElementById('f-dur').value=dur;
+  if(type==='gct')updateGCT();
+  if(type==='combo'){updateCombo(); cIds.forEach(id=>renderCB(id));}
+  if(type==='walk'){updateWalkPrice(); cIds.forEach(id=>renderCB(id));}
+}
+
+// ── Guide modal ───────────────────────────────────────────
+let editGId=null;
+function openGM(id,data){
+  editGId=id||null;
+  document.getElementById('gm-title').textContent=id?'Upraviť guide':'Pridať guide';
+  document.getElementById('gm-name').value=data?data.name||'':'';
+  document.getElementById('gm-email').value=data?data.email||'':'';
+  document.getElementById('gm-phone').value=data?data.phone||'':'';
+  document.getElementById('gm-lang').value=data?data.lang||'':'';
+  document.getElementById('gmodal').classList.add('on');
+}
+function closeGM(){document.getElementById('gmodal').classList.remove('on');editGId=null;}
+
+async function saveGuide(){
+  const name=document.getElementById('gm-name').value.trim();
+  if(!name){alert('Zadaj meno.');return;}
+  const d={name,email:document.getElementById('gm-email').value.trim(),phone:document.getElementById('gm-phone').value.trim(),lang:document.getElementById('gm-lang').value.trim()};
+  if(editGId)await SB.from('guides').update(d).eq('id',editGId);
+  else await SB.from('guides').insert(d);
+  closeGM();renderGuides();refreshGuides();
+}
+
+async function delGuide(id){
+  if(!confirm('Zmazať guide?'))return;
+  await SB.from('guides').delete().eq('id',id);
+  renderGuides();refreshGuides();
+}
+
+function ini(n){return n.split(' ').filter(Boolean).map(w=>w[0]).join('').toUpperCase().slice(0,2);}
+let guidesCache=[];
+
+async function renderGuides(){
+  const el=document.getElementById('glist');
+  el.innerHTML='<div class="load">Načítavam...</div>';
+  const{data,error}=await SB.from('guides').select('*').order('name');
+  if(error){el.innerHTML='<div class="empty"><p>Chyba: '+error.message+'</p></div>';return;}
+  guidesCache=data||[];
+  if(!guidesCache.length){el.innerHTML='<div class="empty"><p>Žiadni guides. Pridaj prvého.</p></div>';return;}
+  el.innerHTML=guidesCache.map(g=>`
+    <div class="gc">
+      <div class="gt"><div class="gav">${ini(g.name)}</div>
+        <div class="gi"><div class="gn">${esc(g.name)}</div><div class="ge">${esc(g.email||'—')}</div>${g.lang?`<div class="gl">${esc(g.lang)}</div>`:''}</div>
+      </div>
+      ${g.phone?`<div style="font-size:13px;color:var(--text2);">${esc(g.phone)}</div>`:''}
+      <div class="ga">
+        <button class="btn btn-g" style="flex:1;" onclick='openGM("${g.id}",${JSON.stringify(g)})'>Upraviť</button>
+        <button class="btn btn-d" onclick="delGuide('${g.id}')">Zmazať</button>
+      </div>
+    </div>`).join('');
+}
+
+async function refreshGuides(){
+  if(!SB)return;
+  const{data}=await SB.from('guides').select('*').order('name');
+  guidesCache=data||[];
+  const sel=document.getElementById('f-guide'),cur=sel.value;
+  sel.innerHTML='<option value="">— Vyber guide —</option>'+guidesCache.map(g=>
+    `<option value="${g.id}" data-email="${esc(g.email||'')}" data-name="${esc(g.name)}" data-phone="${esc(g.phone||'')}">${esc(g.name)}${g.lang?' ('+g.lang+')':''}</option>`
+  ).join('');
+  if(cur)sel.value=cur;
+  onGuide();
+}
+
+function onGuide(){
+  const sel=document.getElementById('f-guide'),opt=sel.options[sel.selectedIndex],info=document.getElementById('guide-info');
+  if(!sel.value){info.style.display='none';return;}
+  document.getElementById('guide-info-txt').textContent=(opt.dataset.name||opt.text)+([opt.dataset.email,opt.dataset.phone].filter(Boolean).map(x=>' · '+x).join(''));
+  info.style.display='block';
+  updateWalkPrice();updateCombo();
+}
+function getGuideName(){const sel=document.getElementById('f-guide'),opt=sel.options[sel.selectedIndex];return sel.value?(opt.dataset.name||opt.text):'Guide';}
+function getGuideEmail(){const sel=document.getElementById('f-guide'),opt=sel.options[sel.selectedIndex];return sel.value?(opt.dataset.email||''):'';}
+
+// ── Clients ───────────────────────────────────────────────
+let cIds=[],cCnt=0,cData={};
+
+function addClient(pre){
+  const id=++cCnt;cIds.push(id);
+  cData[id]=pre?{name:pre.name||'',pax:pre.pax||1,voucher:pre.voucher||'',note:pre.note||'',cancelled:pre.cancelled||false,tour_type:pre.tour_type||'walk'}
+               :{name:'',pax:1,voucher:'',note:'',cancelled:false,tour_type:'walk'};
+  // Always re-render all clients so combo selector appears correctly on all
+  renderCB(id);
+  // Re-render existing clients too so combo selector shows on first client
+  cIds.forEach(cid=>{ if(cid!==id) renderCB(cid); });
+  updateWalkPrice();updateCombo();
+}
+
+function setTourType(id,type){
+  cData[id].tour_type=type;
+  renderCB(id);
+  updateCombo();
+}
+
+function renderCB(id){
+  const d=cData[id],num=cIds.indexOf(id)+1,gone=d.cancelled,pax=parseInt(d.pax)||1;
+  const tourType=d.tour_type||'walk';
+  const isCombo=svc==='combo';
+  const div=document.createElement('div');
+  div.className='cb'+(gone?' gone':'');div.id='cb'+id;
+
+  let comboSelector='';
+  if(isCombo&&!gone){
+    comboSelector=`
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button onclick="setTourType(${id},'walk')" style="flex:1;padding:7px;border-radius:var(--r);border:1px solid var(--border2);cursor:pointer;font-family:var(--font);font-size:13px;font-weight:500;transition:all 0.15s;background:${tourType==='walk'?'var(--accent)':'var(--surface)'};color:${tourType==='walk'?'#fff':'var(--text2)'};">
+        Walking (1 hod)
+      </button>
+      <button onclick="setTourType(${id},'gct')" style="flex:1;padding:7px;border-radius:var(--r);border:1px solid var(--border2);cursor:pointer;font-family:var(--font);font-size:13px;font-weight:500;transition:all 0.15s;background:${tourType==='gct'?'var(--accent)':'var(--surface)'};color:${tourType==='gct'?'#fff':'var(--text2)'};">
+        Grand City Tour
+      </button>
+    </div>`;
+  }
+
+  div.innerHTML=`
+    <div class="cb-head">
+      <span class="cbadge${gone?' red':''}" id="cbn${id}">${gone?'STORNO · ':''}Klient ${num}${isCombo&&!gone?' · '+(tourType==='gct'?'GCT':'Walking'):''}</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${!gone?`<button class="btn btn-w" onclick="cancelC(${id})">Storno</button>`:`<button class="btn btn-g" onclick="reinstate(${id})">Obnovit</button>`}
+        <button class="btn btn-d" onclick="removeC(${id})">Odstranit</button>
+      </div>
+    </div>
+    ${comboSelector}
+    <div class="g2">
+      <div><label>Meno klienta</label>
+        <input type="text" id="cn${id}" value="${esc(d.name)}" placeholder="e.g. Holland, Louise" ${gone?'disabled':''} oninput="cData[${id}].name=this.value">
+      </div>
+      <div><label>Pocet osob (pax)</label>
+        <div class="pax">
+          <button onclick="chPax(${id},-1)" ${gone?'disabled':''}>-</button>
+          <span class="pax-n" id="cpx${id}">${pax}</span>
+          <button onclick="chPax(${id},1)" ${gone?'disabled':''}>+</button>
+        </div>
+      </div>
+    </div>
+    <div class="g2">
+      <div><label>Voucher</label>
+        <input type="text" id="cv${id}" value="${esc(d.voucher)}" placeholder="Kod vouchera" ${gone?'disabled':''} oninput="cData[${id}].voucher=this.value">
+      </div>
+      <div><label>Note</label>
+        <input type="text" id="cno${id}" value="${esc(d.note)}" placeholder="Specialne instrukcie" ${gone?'disabled':''} oninput="cData[${id}].note=this.value">
+      </div>
+    </div>`;
+  const ex=document.getElementById('cb'+id);
+  if(ex)ex.replaceWith(div);else document.getElementById('clist').appendChild(div);
+}
+
+function chPax(id,d){const n=Math.max(1,(parseInt(cData[id].pax)||1)+d);cData[id].pax=n;document.getElementById('cpx'+id).textContent=n;updateWalkPrice();updateCombo();}
+function cancelC(id){cData[id].cancelled=true;renderCB(id);updateWalkPrice();updateCombo();}
+function reinstate(id){cData[id].cancelled=false;renderCB(id);updateWalkPrice();updateCombo();}
+function removeC(id){cIds=cIds.filter(x=>x!==id);delete cData[id];const e=document.getElementById('cb'+id);if(e)e.remove();renum();updateWalkPrice();updateCombo();}
+function renum(){cIds.forEach((id,i)=>{const b=document.getElementById('cbn'+id);if(b)b.textContent=(cData[id].cancelled?'STORNO · ':'')+'Klient '+(i+1);});}
+
+// ── Generate ──────────────────────────────────────────────
+let amendId=null,lastTxt='',lastSubj='';
+function gv(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+function fmtDate(d){if(!d)return'';const[y,m,day]=d.split('-');return`${day}.${m}.${y}`;}
+
+function buildSubject(isAmend){
+  const date=fmtDate(gv('f-date'));
+  const guide=getGuideName();
+  const active=cIds.filter(id=>!cData[id].cancelled);
+  const parts=active.map(id=>{
+    const d=cData[id];
+    const pax=parseInt(d.pax)||1;
+    return (d.name||'')+(pax>0?', '+pax+' pax':'')+(d.voucher?', '+d.voucher:'');
+  }).filter(Boolean);
+  const clientStr=parts.slice(0,2).join(' | ')+(parts.length>2?' +'+(parts.length-2):'');
+  if(isAmend) return 'Zmena v objednavke, '+guide+', '+date+(clientStr?', '+clientStr:'');
+  return 'Nova objednavka, '+guide+', '+date+(clientStr?', '+clientStr:'');
+}
+
+function generate(){
+  const sender=getSender();
+  if(!sender){alert('Vyber objednávateľa.');return;}
+  const guideEmail=getGuideEmail();
+  if(!guideEmail){alert('Guide nemá zadaný email. Doplň ho v sekcii Guides.');return;}
+
+  const isAmend=!!amendId;
+  const date=fmtDate(gv('f-date'));
+  const meet=gv('f-meet');
+  const car=gv('f-car');
+  const car2=gv('f-car2');
+  const walkEnd=gv('f-walk-end');
+  const end2=gv('f-end2');
+  const pay=gv('f-pay');
+  const lang=getSvcLang();
+  const langSk=LANG_SK[lang];
+  const langEn=LANG_EN[lang];
+
+  const lines=[];
+  lines.push('Dobry den,');
+  lines.push('');
+  lines.push(isAmend?'Zasielam Vam zmenu v objednavke.':'Zasielam Vam novu objednavku.');
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+
+  // Service header
+  if(svc==='walk'){
+    lines.push('Servis: 1 hod pesia prehliadka Bratislavy v '+langSk+' ('+langEn+')');
+  } else if(svc==='gct'){
+    lines.push('Servis: 3 hod Grand City Tour v '+langSk+' ('+langEn+')');
+  } else {
+    lines.push('Servis: pesia prehliadka Bratislavy + Grand City Tour v '+langSk+' ('+langEn+')');
+  }
+
+  lines.push('Datum: '+date);
+  if(meet) lines.push('Cas zaciatok: '+meet);
+
+  if(svc==='gct'){
+    if(car) lines.push('Stretnutie s autom: '+car);
+    if(end2) lines.push('Koniec: '+end2);
+  } else if(svc==='combo'){
+    if(walkEnd) lines.push('Koniec Walking: '+walkEnd);
+    if(car2) lines.push('Stretnutie s autom (GCT): '+car2);
+    if(end2) lines.push('Koniec GCT: '+end2);
+  }
+
+  // Clients
+  let cn=0; const storno=[];
+  // For combo, show GCT clients first, then Walking clients
+  const orderedIds = svc==='combo'
+    ? [...cIds.filter(id=>!cData[id].cancelled&&cData[id].tour_type==='gct'), ...cIds.filter(id=>!cData[id].cancelled&&(cData[id].tour_type||'walk')==='walk'), ...cIds.filter(id=>cData[id].cancelled)]
+    : cIds;
+
+  if(svc==='combo'){
+    const gctIds=cIds.filter(id=>!cData[id].cancelled&&cData[id].tour_type==='gct');
+    const walkIds=cIds.filter(id=>!cData[id].cancelled&&(cData[id].tour_type||'walk')==='walk');
+    const cancelIds=cIds.filter(id=>cData[id].cancelled);
+    if(gctIds.length){
+      lines.push('');
+      lines.push('--- GRAND CITY TOUR (3 hod) ---');
+      gctIds.forEach(id=>{
+        const d=cData[id];cn++;
+        lines.push('');lines.push(cn+'.)');
+        if(d.name) lines.push('Klient: '+d.name+(d.pax?', '+d.pax+' pax':''));
+        if(d.voucher) lines.push('Voucher: '+d.voucher);
+        if(d.note) lines.push('Note: '+d.note);
+      });
+    }
+    if(walkIds.length){
+      lines.push('');
+      lines.push('--- WALKING TOUR (1 hod) ---');
+      walkIds.forEach(id=>{
+        const d=cData[id];cn++;
+        lines.push('');lines.push(cn+'.)');
+        if(d.name) lines.push('Klient: '+d.name+(d.pax?', '+d.pax+' pax':''));
+        if(d.voucher) lines.push('Voucher: '+d.voucher);
+        if(d.note) lines.push('Note: '+d.note);
+      });
+    }
+    cancelIds.forEach(d=>storno.push(cData[d]));
+  } else {
+    cIds.forEach(id=>{
+      const d=cData[id];
+      if(d.cancelled){storno.push(d);return;}
+      cn++;
+      lines.push('');
+      lines.push(cn+'.)');
+      if(d.name) lines.push('Klient: '+d.name+(d.pax?', '+d.pax+' pax':''));
+      if(d.voucher) lines.push('Voucher: '+d.voucher);
+      if(d.note) lines.push('Note: '+d.note);
+    });
+  }
+
+  if(storno.length){
+    lines.push('');
+    lines.push('--- STORNO ---');
+    storno.forEach(d=>lines.push('STORNO: '+(d.name||'Klient')+(d.pax?', '+d.pax+' pax':'')));
+  }
+
+  lines.push('');
+  lines.push('CENA: '+getSvcPrice()+' / UHRADA: '+pay);
+  lines.push('');
+  lines.push('');
+  lines.push('Poprosim Vas o kratke potvrdenie.');
+  lines.push('');
+  lines.push('S pozdravom,');
+  lines.push('');
+  lines.push(sender.name);
+  lines.push(sender.email);
+  lines.push(sender.phone);
+
+  lastTxt=lines.join('\n');
+  lastSubj=buildSubject(isAmend);
+
+  const out=document.getElementById('out');
+  out.textContent=lastTxt;
+  out.style.display='block';
+  document.getElementById('out-acts').style.display='flex';
+  out.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function openOutlook(e){
+  e.preventDefault();
+  if(!lastTxt){alert('Najskôr vygeneruj email.');return;}
+  const guideEmail=getGuideEmail();
+  if(!guideEmail){alert('Guide nemá zadaný email.');return;}
+  window.location.href='mailto:'+encodeURIComponent(guideEmail)
+    +'?subject='+encodeURIComponent(lastSubj)
+    +'&body='+encodeURIComponent(lastTxt);
+}
+
+function copyTxt(){
+  if(!lastTxt)return;
+  navigator.clipboard.writeText(lastTxt).then(()=>{
+    const l=document.getElementById('copy-lbl');
+    l.textContent='Skopírované!';setTimeout(()=>l.textContent='Kopírovať',2000);
+  });
+}
+
+async function saveHist(){
+  if(!lastTxt)return;
+  const sel=document.getElementById('f-guide'),opt=sel.options[sel.selectedIndex];
+  const senderKey=document.getElementById('f-sender').value;
+  const row={
+    date:gv('f-date'),
+    guide_id:sel.value||null,
+    guide_name:sel.value?(opt.dataset.name||opt.text):'',
+    sender_key:senderKey,
+    sender_name:senderKey?SENDERS[senderKey].name:'',
+    service_type:svc,
+    lang:getSvcLang(),
+    meeting:gv('f-meet'),
+    duration:gv('f-dur'),
+    payment:gv('f-pay'),
+    car_meeting:gv('f-car')||gv('f-car2'),
+    walk_end:gv('f-walk-end'),
+    end2:gv('f-end2'),
+    text:lastTxt,
+    subject:lastSubj,
+    clients:JSON.stringify(cIds.map(id=>({...cData[id]}))),
+    client_names:JSON.stringify(cIds.filter(id=>!cData[id].cancelled).map(id=>cData[id].name).filter(Boolean)),
+    is_amendment:!!amendId,
+    created_at:new Date().toISOString()
+  };
+  if(amendId){await SB.from('bookings').update(row).eq('id',amendId);alert('Zmena uložená!');}
+  else{await SB.from('bookings').insert(row);alert('Uložené do histórie!');}
+}
+
+function resetForm(){
+  cIds=[];cCnt=0;cData={};amendId=null;lastTxt='';lastSubj='';
+  document.getElementById('clist').innerHTML='';
+  document.getElementById('out').style.display='none';
+  document.getElementById('out-acts').style.display='none';
+  ['f-date','f-meet','f-car','f-car2','f-walk-end','f-end2'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('f-guide').value='';
+  document.getElementById('f-sender').value='';
+  document.getElementById('sender-info').style.display='none';
+  document.getElementById('sb-sender').textContent='—';
+  document.getElementById('abanner').style.display='none';
+  document.getElementById('c-title').textContent='Nový email';
+  document.getElementById('c-sub').textContent='Vyplň detaily, vyber objednávateľa a odošli do Outlooku jedným klikom.';
+  document.getElementById('gen-lbl').textContent='Vygenerovať email';
+  onGuide();setSvc('walk');addClient();
+}
+
+function openAmend(id,h){
+  cIds=[];cCnt=0;cData={};lastTxt='';lastSubj='';
+  document.getElementById('clist').innerHTML='';
+  document.getElementById('out').style.display='none';
+  document.getElementById('out-acts').style.display='none';
+  amendId=id;
+  if(h.date)document.getElementById('f-date').value=h.date;
+  if(h.meeting)document.getElementById('f-meet').value=h.meeting;
+  if(h.duration)document.getElementById('f-dur').value=h.duration;
+  if(h.payment)document.getElementById('f-pay').value=h.payment;
+  if(h.car_meeting){
+    const el=document.getElementById('f-car')||document.getElementById('f-car2');
+    if(el)el.value=h.car_meeting;
+  }
+  if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
+  if(h.end2)document.getElementById('f-end2').value=h.end2||'';
+  if(h.sender_key){
+    document.getElementById('f-sender').value=h.sender_key;onSender();
+  }
+  if(h.service_type)setSvc(h.service_type);
+  if(h.lang){
+    const lsel=document.getElementById(h.service_type==='walk'?'w-lang':h.service_type==='gct'?'gct-lang':'combo-lang');
+    if(lsel)lsel.value=h.lang;
+  }
+  refreshGuides().then(()=>{if(h.guide_id){document.getElementById('f-guide').value=h.guide_id;onGuide();}});
+  let cl=[];try{cl=JSON.parse(h.clients||'[]');}catch{}
+  if(cl.length)cl.forEach(c=>addClient(c));else addClient();
+  document.getElementById('abanner').style.display='flex';
+  document.getElementById('c-title').textContent='Zmena objednávky';
+  document.getElementById('c-sub').textContent='Upravuješ objednávku z '+(h.date?fmtDate(h.date):'—')+'.';
+  document.getElementById('gen-lbl').textContent='Vygenerovať email o zmene';
+  nav('compose');window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function exitAmend(){
+  amendId=null;
+  document.getElementById('abanner').style.display='none';
+  document.getElementById('c-title').textContent='Nový email';
+  document.getElementById('c-sub').textContent='Vyplň detaily, vyber objednávateľa a odošli do Outlooku jedným klikom.';
+  document.getElementById('gen-lbl').textContent='Vygenerovať email';
+}
+
+// ── History ───────────────────────────────────────────────
+let historyCache = [];
+
+async function renderHistory(){
+  const el=document.getElementById('hlist');
+  el.innerHTML='<div class="load">Načítavam...</div>';
+  const{data,error}=await SB.from('bookings').select('*').order('created_at',{ascending:false}).limit(300);
+  if(error||!data){el.innerHTML='<div class="empty"><p>Chyba načítania.</p></div>';return;}
+  historyCache = data;
+  filterHistory();
+}
+
+function filterHistory(){
+  const el=document.getElementById('hlist');
+  const q=(document.getElementById('h-search').value||'').toLowerCase().trim();
+  const data=historyCache;
+
+  if(!data.length){el.innerHTML='<div class="empty"><p>História je prázdna.</p></div>';document.getElementById('h-count').textContent='';return;}
+
+  const filtered = q ? data.filter(h=>{
+    // Search in client names
+    let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
+    const clientStr = cn.join(' ').toLowerCase();
+    // Search in full text (contains vouchers)
+    const txt = (h.text||'').toLowerCase();
+    const guide = (h.guide_name||'').toLowerCase();
+    const date = h.date ? fmtDate(h.date).toLowerCase() : '';
+    const sender = (h.sender_name||'').toLowerCase();
+    return clientStr.includes(q) || txt.includes(q) || guide.includes(q) || date.includes(q) || sender.includes(q);
+  }) : data;
+
+  const count=document.getElementById('h-count');
+  if(q) count.textContent = 'Nájdených: '+filtered.length+' z '+data.length;
+  else count.textContent = 'Celkom: '+data.length+' záznamov';
+
+  if(!filtered.length){el.innerHTML='<div class="empty"><p>Žiadne výsledky pre "'+esc(q)+'".</p></div>';return;}
+
+  el.innerHTML=filtered.map(h=>{
+    let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
+    const st=h.service_type==='gct'?'GCT':h.service_type==='combo'?'Combo':'Walking';
+    const henc=encodeURIComponent(JSON.stringify(h));
+    // Highlight matching text
+    const clientDisplay = cn.map(n=>q&&n.toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(n)+'</mark>':esc(n)).join(', ')||'—';
+    const guideDisplay = q&&(h.guide_name||'').toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(h.guide_name||'—')+'</mark>':esc(h.guide_name||'—');
+    return `<div class="hi">
+      <div class="hd">${h.date?fmtDate(h.date):'—'}<br>${new Date(h.created_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:var(--text3);font-size:10px;">${esc(h.sender_name||'')}</span></div>
+      <div class="hinfo">
+        <div class="hg">${guideDisplay} <span class="pill pb">${st}</span>${h.is_amendment?'<span class="pill pw" style="margin-left:4px;">zmena</span>':''}</div>
+        <div class="hc">${clientDisplay}</div>
+      </div>
+      <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+        <button class="btn btn-w" style="font-size:12px;padding:5px 9px;" onclick="openAmend('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Zmena</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+document.getElementById('gmodal').addEventListener('click',function(e){if(e.target===this)closeGM();});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="initApp()" onerror="alert('Chyba načítania. Skontroluj internet.')"></script>
+</body>
+</html>
