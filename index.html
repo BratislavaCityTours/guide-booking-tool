@@ -164,6 +164,10 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
         <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
         História
       </button>
+      <button class="nb" onclick="nav('settings')">
+        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>
+        Nastavenia cien
+      </button>
       <div class="nl" style="margin-top:20px;"></div>
       <button class="nb" onclick="resetConfig()" style="font-size:12px;">
         <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8a6 6 0 1010.93-3.36M2 8V4m0 4H6"/></svg>
@@ -215,7 +219,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
           <button class="stab" onclick="setSvc('combo')" id="t-combo">GCT + 1 hod</button>
           <button class="stab" onclick="setSvc('gct-auto')" id="t-gct-auto">GCT vlastne auto</button>
           <button class="stab" onclick="setSvc('wine')" id="t-wine">Vinny okruh (6 hod)</button>
-          <button class="stab" onclick="setSvc('devin')" id="t-devin">GCT + Devin (3 hod)</button>
+          <button class="stab" onclick="setSvc('devin')" id="t-devin">GCT + Devin (5 hod)</button>
         </div>
 
         <!-- Walking 1 hod -->
@@ -354,7 +358,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
           </select>
           <div class="pbox" style="margin-top:13px;">
             <div>
-              <div class="pbox-l">GCT + Hrad Devin · 3 hod</div>
+              <div class="pbox-l">GCT + Hrad Devin · 5 hod</div>
               <div class="pbox-s" id="devin-sub">Anglictina</div>
             </div>
             <div class="pbox-v" id="devin-val">110 EUR</div>
@@ -467,6 +471,59 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
       <div id="h-count" style="font-size:12px;color:var(--text3);margin-bottom:10px;"></div>
       <div id="hlist"><div class="load">Načítavam...</div></div>
     </div>
+
+    <!-- SETTINGS -->
+    <div class="pg" id="pg-settings">
+      <div class="ph"><h1>Nastavenia cien</h1><p>Uprav ceny — zmeny sa prejavia pre všetkých zamestnancov.</p></div>
+
+      <div class="card">
+        <div class="ct">1 hod Walking Tour — Anglictina / Nemcina</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:12px;">
+          <div><label>1 osoba (EUR)</label><input type="number" id="s-walk1-en-1" min="0"></div>
+          <div><label>2 osoby (EUR)</label><input type="number" id="s-walk1-en-2" min="0"></div>
+          <div><label>3-5 osob (EUR)</label><input type="number" id="s-walk1-en-5" min="0"></div>
+          <div><label>6-9 osob (EUR)</label><input type="number" id="s-walk1-en-9" min="0"></div>
+          <div><label>10+ osob (EUR)</label><input type="number" id="s-walk1-en-10" min="0"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct">1 hod Walking Tour — Spanielcina / Francuzstina / Taliancina</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:12px;">
+          <div><label>1 osoba (EUR)</label><input type="number" id="s-walk1-es-1" min="0"></div>
+          <div><label>2 osoby (EUR)</label><input type="number" id="s-walk1-es-2" min="0"></div>
+          <div><label>3-5 osob (EUR)</label><input type="number" id="s-walk1-es-5" min="0"></div>
+          <div><label>6-9 osob (EUR)</label><input type="number" id="s-walk1-es-9" min="0"></div>
+          <div><label>10+ osob (EUR)</label><input type="number" id="s-walk1-es-10" min="0"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct">Pevne ceny (EUR) — nezavisia od poctu osob</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div><label>1,5 hod EN/DE</label><input type="number" id="s-walk15-en" min="0"></div>
+          <div><label>1,5 hod ES/FR/IT</label><input type="number" id="s-walk15-es" min="0"></div>
+          <div><label>2 hod EN/DE</label><input type="number" id="s-walk2-en" min="0"></div>
+          <div><label>2 hod ES/FR/IT</label><input type="number" id="s-walk2-es" min="0"></div>
+          <div><label>3 hod EN/DE</label><input type="number" id="s-walk3-en" min="0"></div>
+          <div><label>3 hod ES/FR/IT</label><input type="number" id="s-walk3-es" min="0"></div>
+          <div><label>Grand City Tour EN/DE</label><input type="number" id="s-gct-en" min="0"></div>
+          <div><label>Grand City Tour ES/FR/IT</label><input type="number" id="s-gct-es" min="0"></div>
+          <div><label>GCT vlastne auto</label><input type="number" id="s-gct-auto" min="0"></div>
+          <div></div>
+          <div><label>Vinny okruh EN/DE</label><input type="number" id="s-wine-en" min="0"></div>
+          <div><label>Vinny okruh ES/FR/IT</label><input type="number" id="s-wine-es" min="0"></div>
+          <div><label>GCT + Devin EN/DE</label><input type="number" id="s-devin-en" min="0"></div>
+          <div><label>GCT + Devin ES/FR/IT</label><input type="number" id="s-devin-es" min="0"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-p btn-fw" style="padding:13px;font-size:15px;" onclick="savePrices()">
+        Ulozit ceny
+      </button>
+      <div id="settings-msg" style="margin-top:12px;font-size:13px;color:var(--accent);display:none;">Ceny ulozene!</div>
+    </div>
+
   </main>
 </div>
 
@@ -671,6 +728,8 @@ function showApp(){
   setSvc('walk1');
   refreshGuides();
   addClient();
+  // Load prices from DB on startup
+  SB.from('settings').select('*').then(({data})=>{ if(data) applyPricesToApp(data); });
 }
 
 async function saveConfig(){
@@ -691,6 +750,7 @@ function nav(page){
   if(btn)btn.classList.add('on');
   if(page==='guides')renderGuides();
   if(page==='history')renderHistory();
+  if(page==='settings')loadPrices();
   if(page==='compose')refreshGuides();
 }
 
@@ -707,7 +767,7 @@ function setSvc(type){
     if(sec) sec.style.display=t===type?'block':'none';
   });
   // Duration
-  const durMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod',devin:'3 hod'};
+  const durMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod',devin:'5 hod'};
   document.getElementById('f-dur').value=durMap[type]||'1 hod';
   // Show/hide extra fields
   document.getElementById('gct-extra').style.display=(type==='gct'||type==='gct-auto')?'block':'none';
@@ -1298,6 +1358,76 @@ function filterHistory(){
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Settings / Prices ─────────────────────────────────────
+const PRICE_FIELDS = {
+  'walk1_EN_1':'s-walk1-en-1','walk1_EN_2':'s-walk1-en-2','walk1_EN_5':'s-walk1-en-5','walk1_EN_9':'s-walk1-en-9','walk1_EN_10':'s-walk1-en-10',
+  'walk1_ES_1':'s-walk1-es-1','walk1_ES_2':'s-walk1-es-2','walk1_ES_5':'s-walk1-es-5','walk1_ES_9':'s-walk1-es-9','walk1_ES_10':'s-walk1-es-10',
+  'walk15_EN':'s-walk15-en','walk15_ES':'s-walk15-es',
+  'walk2_EN':'s-walk2-en','walk2_ES':'s-walk2-es',
+  'walk3_EN':'s-walk3-en','walk3_ES':'s-walk3-es',
+  'gct_EN':'s-gct-en','gct_ES':'s-gct-es',
+  'gct_auto':'s-gct-auto',
+  'wine_EN':'s-wine-en','wine_ES':'s-wine-es',
+  'devin_EN':'s-devin-en','devin_ES':'s-devin-es'
+};
+
+async function loadPrices(){
+  const {data,error} = await SB.from('settings').select('*');
+  if(error||!data) return;
+  data.forEach(row=>{
+    const fieldId = PRICE_FIELDS[row.key];
+    if(fieldId){
+      const el = document.getElementById(fieldId);
+      if(el) el.value = row.value;
+    }
+  });
+  // Also update in-memory pricing
+  applyPricesToApp(data);
+}
+
+function applyPricesToApp(data){
+  const p = {};
+  data.forEach(r=>p[r.key]=parseFloat(r.value)||0);
+
+  // Walk 1 tiers EN/DE
+  if(p['walk1_EN_1']) WALK_TIERS['EN'] = [{max:1,p:p['walk1_EN_1']},{max:2,p:p['walk1_EN_2']||34},{max:5,p:p['walk1_EN_5']||40},{max:9,p:p['walk1_EN_9']||44},{max:999,p:p['walk1_EN_10']||46}];
+  if(p['walk1_EN_1']) WALK_TIERS['DE'] = [...WALK_TIERS['EN']];
+
+  // Walk 1 tiers ES/FR/IT
+  if(p['walk1_ES_1']) WALK_TIERS['ES'] = [{max:1,p:p['walk1_ES_1']},{max:2,p:p['walk1_ES_2']||50},{max:5,p:p['walk1_ES_5']||58},{max:9,p:p['walk1_ES_9']||66},{max:999,p:p['walk1_ES_10']||70}];
+  if(p['walk1_ES_1']) WALK_TIERS['FR'] = [...WALK_TIERS['ES']];
+  if(p['walk1_ES_1']) WALK_TIERS['IT'] = [...WALK_TIERS['ES']];
+
+  // Fixed prices
+  if(p['walk15_EN']){ FIXED_WALK_P.walk15['EN']=p['walk15_EN']; FIXED_WALK_P.walk15['DE']=p['walk15_EN']; }
+  if(p['walk15_ES']){ FIXED_WALK_P.walk15['ES']=p['walk15_ES']; FIXED_WALK_P.walk15['FR']=p['walk15_ES']; FIXED_WALK_P.walk15['IT']=p['walk15_ES']; }
+  if(p['walk2_EN']){ FIXED_WALK_P.walk2['EN']=p['walk2_EN']; FIXED_WALK_P.walk2['DE']=p['walk2_EN']; }
+  if(p['walk2_ES']){ FIXED_WALK_P.walk2['ES']=p['walk2_ES']; FIXED_WALK_P.walk2['FR']=p['walk2_ES']; FIXED_WALK_P.walk2['IT']=p['walk2_ES']; }
+  if(p['walk3_EN']){ FIXED_WALK_P.walk3['EN']=p['walk3_EN']; FIXED_WALK_P.walk3['DE']=p['walk3_EN']; }
+  if(p['walk3_ES']){ FIXED_WALK_P.walk3['ES']=p['walk3_ES']; FIXED_WALK_P.walk3['FR']=p['walk3_ES']; FIXED_WALK_P.walk3['IT']=p['walk3_ES']; }
+  if(p['gct_EN']){ GCT_P['EN']=p['gct_EN']; GCT_P['DE']=p['gct_EN']; }
+  if(p['gct_ES']){ GCT_P['ES']=p['gct_ES']; GCT_P['FR']=p['gct_ES']; GCT_P['IT']=p['gct_ES']; }
+  if(p['wine_EN']){ WINE_P['EN']=p['wine_EN']; WINE_P['DE']=p['wine_EN']; }
+  if(p['wine_ES']){ WINE_P['ES']=p['wine_ES']; WINE_P['FR']=p['wine_ES']; WINE_P['IT']=p['wine_ES']; }
+  if(p['devin_EN']){ DEVIN_P['EN']=p['devin_EN']; DEVIN_P['DE']=p['devin_EN']; }
+  if(p['devin_ES']){ DEVIN_P['ES']=p['devin_ES']; DEVIN_P['FR']=p['devin_ES']; DEVIN_P['IT']=p['devin_ES']; }
+}
+
+async function savePrices(){
+  const rows = Object.entries(PRICE_FIELDS).map(([key, fieldId])=>{
+    const el = document.getElementById(fieldId);
+    return { key, value: el ? String(el.value) : '0' };
+  });
+  const {error} = await SB.from('settings').upsert(rows, {onConflict:'key'});
+  if(error){ alert('Chyba ukladania: '+error.message); return; }
+  // Apply to app immediately
+  const data = rows.map(r=>({key:r.key,value:r.value}));
+  applyPricesToApp(data);
+  const msg = document.getElementById('settings-msg');
+  msg.style.display='block';
+  setTimeout(()=>msg.style.display='none', 3000);
+}
 
 document.getElementById('gmodal').addEventListener('click',function(e){if(e.target===this)closeGM();});
 </script>
