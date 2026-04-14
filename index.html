@@ -213,6 +213,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
           <button class="stab" onclick="setSvc('walk3')" id="t-walk3">3 hod</button>
           <button class="stab" onclick="setSvc('gct')" id="t-gct">Grand City Tour (3 hod)</button>
           <button class="stab" onclick="setSvc('combo')" id="t-combo">GCT + 1 hod</button>
+          <button class="stab" onclick="setSvc('gct-auto')" id="t-gct-auto">GCT vlastne auto</button>
         </div>
 
         <!-- Walking 1 hod -->
@@ -316,7 +317,25 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
             <div class="pbox-v" id="combo-pval">— EUR</div>
           </div>
           <div style="margin-top:8px;font-size:12px;color:var(--text2);padding:8px 12px;background:var(--blue-l);border-radius:var(--r);">
-            ℹ️ Walking klienti končia po 1 hod. GCT klienti pokračujú ďalšie 2 hod s autom.
+            Walking klienti koncias po 1 hod. GCT klienti pokracuju dalsie 2 hod s autom.
+          </div>
+        </div>
+
+        <!-- GCT vlastne auto -->
+        <div id="s-gct-auto" style="display:none;">
+          <div style="padding:11px 15px;background:var(--accent-l);border:1px solid #b6d4bc;border-radius:var(--r);margin-top:4px;">
+            <div style="font-size:12px;color:var(--accent);font-weight:600;">Bratislava Grand City Tour — vlastne auto</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:3px;">Jazyk: Anglictina · Ms Daria Juhasova</div>
+          </div>
+          <div class="pbox" style="margin-top:13px;">
+            <div>
+              <div class="pbox-l">Cena · GCT vlastne auto</div>
+              <div class="pbox-s" id="gct-auto-sub">98 EUR pevna cena</div>
+            </div>
+            <div class="pbox-v" id="gct-auto-val">98 EUR</div>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--text2);padding:8px 12px;background:var(--blue-l);border-radius:var(--r);">
+            Moznost kombinavat s Walking Tour klientmi — Walking cena sa rata podla poctu osob (50%)
           </div>
         </div>
       </div>
@@ -524,6 +543,19 @@ function getGCTPaxCombo(){
   return cIds.reduce((s,id)=>s+(cData[id]&&!cData[id].cancelled&&cData[id].tour_type==='gct'?(parseInt(cData[id].pax)||1):0),0)||0;
 }
 
+function updateGCTAutoPrice() {
+  const walkPax = getWalkPaxCombo();
+  const wp = walkPax > 0 ? getWalkPrice('EN', walkPax) : 0;
+  const wh = Math.round(wp * 0.5);
+  const total = 98 + wh;
+  document.getElementById('gct-auto-val').textContent = total + ' EUR';
+  if(walkPax > 0){
+    document.getElementById('gct-auto-sub').textContent = '98 EUR + Walking '+wh+' EUR (50% z '+wp+' EUR, '+walkPax+' osob)';
+  } else {
+    document.getElementById('gct-auto-sub').textContent = '98 EUR pevna cena';
+  }
+}
+
 function getSvcPrice() {
   const pax = getTotalPax();
   if(svc==='walk1') return getWalkPrice(document.getElementById('w1-lang').value, pax)+' EUR';
@@ -531,6 +563,11 @@ function getSvcPrice() {
   if(svc==='walk2') return FIXED_WALK_P.walk2[document.getElementById('w2-lang').value]+' EUR';
   if(svc==='walk3') return FIXED_WALK_P.walk3[document.getElementById('w3-lang').value]+' EUR';
   if(svc==='gct') return GCT_P[document.getElementById('gct-lang').value]+' EUR';
+  if(svc==='gct-auto'){
+    const walkPax = getWalkPaxCombo();
+    const wp = walkPax > 0 ? getWalkPrice('EN', walkPax) : 0;
+    return (98 + Math.round(wp*0.5))+' EUR';
+  }
   // combo
   const lang = document.getElementById('combo-lang').value;
   const walkPax = getWalkPaxCombo();
@@ -545,6 +582,7 @@ function getSvcLang() {
   if(svc==='walk2') return document.getElementById('w2-lang').value;
   if(svc==='walk3') return document.getElementById('w3-lang').value;
   if(svc==='gct') return document.getElementById('gct-lang').value;
+  if(svc==='gct-auto') return 'EN';
   return document.getElementById('combo-lang').value;
 }
 
@@ -596,7 +634,7 @@ let svc='walk';
 
 function setSvc(type){
   svc=type;
-  const allTypes=['walk1','walk15','walk2','walk3','gct','combo'];
+  const allTypes=['walk1','walk15','walk2','walk3','gct','combo','gct-auto'];
   allTypes.forEach(t=>{
     const tab=document.getElementById('t-'+t);
     const sec=document.getElementById('s-'+t);
@@ -608,14 +646,19 @@ function setSvc(type){
   document.getElementById('combo-extra').style.display=type==='combo'?'block':'none';
   document.getElementById('gct-end-wrap').style.display=(type==='gct'||type==='combo')?'block':'none';
   // Duration
-  const durMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod'};
+  const durMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod'};
   document.getElementById('f-dur').value=durMap[type]||'1 hod';
+  // Show/hide extra fields
+  document.getElementById('gct-extra').style.display=(type==='gct'||type==='gct-auto')?'block':'none';
+  document.getElementById('combo-extra').style.display=type==='combo'?'block':'none';
+  document.getElementById('gct-end-wrap').style.display=(type==='gct'||type==='combo'||type==='gct-auto')?'block':'none';
   if(type==='gct') updateGCT();
   if(type==='combo'){updateCombo(); cIds.forEach(id=>renderCB(id));}
   if(type==='walk1'){updateWalkPrice(); cIds.forEach(id=>renderCB(id));}
   if(type==='walk15') updateFixedWalkPrice('walk15');
   if(type==='walk2') updateFixedWalkPrice('walk2');
   if(type==='walk3') updateFixedWalkPrice('walk3');
+  if(type==='gct-auto') updateGCTAutoPrice();
 }
 
 // ── Guide modal ───────────────────────────────────────────
@@ -714,7 +757,7 @@ function setTourType(id,type){
 function renderCB(id){
   const d=cData[id],num=cIds.indexOf(id)+1,gone=d.cancelled,pax=parseInt(d.pax)||1;
   const tourType=d.tour_type||'walk';
-  const isCombo=svc==='combo';
+  const isCombo=svc==='combo'||svc==='gct-auto';
   const div=document.createElement('div');
   div.className='cb'+(gone?' gone':'');div.id='cb'+id;
 
@@ -764,10 +807,11 @@ function renderCB(id){
   if(ex)ex.replaceWith(div);else document.getElementById('clist').appendChild(div);
 }
 
-function chPax(id,d){const n=Math.max(1,(parseInt(cData[id].pax)||1)+d);cData[id].pax=n;document.getElementById('cpx'+id).textContent=n;updateWalkPrice();updateCombo();}
-function cancelC(id){cData[id].cancelled=true;renderCB(id);updateWalkPrice();updateCombo();}
-function reinstate(id){cData[id].cancelled=false;renderCB(id);updateWalkPrice();updateCombo();}
-function removeC(id){cIds=cIds.filter(x=>x!==id);delete cData[id];const e=document.getElementById('cb'+id);if(e)e.remove();renum();updateWalkPrice();updateCombo();}
+function updatePrices(){updateWalkPrice();updateCombo();if(svc==='gct-auto')updateGCTAutoPrice();}
+function chPax(id,d){const n=Math.max(1,(parseInt(cData[id].pax)||1)+d);cData[id].pax=n;document.getElementById('cpx'+id).textContent=n;updatePrices();}
+function cancelC(id){cData[id].cancelled=true;renderCB(id);updatePrices();}
+function reinstate(id){cData[id].cancelled=false;renderCB(id);updatePrices();}
+function removeC(id){cIds=cIds.filter(x=>x!==id);delete cData[id];const e=document.getElementById('cb'+id);if(e)e.remove();renum();updatePrices();}
 function renum(){cIds.forEach((id,i)=>{const b=document.getElementById('cbn'+id);if(b)b.textContent=(cData[id].cancelled?'STORNO · ':'')+'Klient '+(i+1);});}
 
 // ── Generate ──────────────────────────────────────────────
@@ -808,9 +852,16 @@ function generate(){
   const langEn=LANG_EN[lang];
 
   const lines=[];
-  lines.push('Dobry den,');
-  lines.push('');
-  lines.push(isAmend?'Zasielam Vam zmenu v objednavke.':'Zasielam Vam novu objednavku.');
+  // Special greeting for gct-auto
+  if(svc==='gct-auto'){
+    lines.push('Dobry den, p Daria,');
+    lines.push('');
+    lines.push(isAmend?'Zasielam Vam zmenu v objednavke na Bratislava Grand City Tour vlastnym autom.':'Zasielam Vam novu objednavku na Bratislava Grand City Tour vlastnym autom.');
+  } else {
+    lines.push('Dobry den,');
+    lines.push('');
+    lines.push(isAmend?'Zasielam Vam zmenu v objednavke.':'Zasielam Vam novu objednavku.');
+  }
   lines.push('');
   lines.push('---');
   lines.push('');
@@ -821,6 +872,8 @@ function generate(){
     lines.push('Servis: '+durMap[svc]+' pesia prehliadka Bratislavy v '+langSk+' ('+langEn+')');
   } else if(svc==='gct'){
     lines.push('Servis: 3 hod Grand City Tour v '+langSk+' ('+langEn+')');
+  } else if(svc==='gct-auto'){
+    lines.push('Servis: Bratislava Grand City Tour vlastnym autom (English)');
   } else {
     lines.push('Servis: pesia prehliadka Bratislavy + Grand City Tour v '+langSk+' ('+langEn+')');
   }
@@ -828,7 +881,7 @@ function generate(){
   lines.push('Datum: '+date);
   if(meet) lines.push('Cas zaciatok: '+meet);
 
-  if(svc==='gct'){
+  if(svc==='gct'||svc==='gct-auto'){
     if(car) lines.push('Stretnutie s autom: '+car);
     if(end2) lines.push('Koniec: '+end2);
   } else if(svc==='combo'){
@@ -839,12 +892,13 @@ function generate(){
 
   // Clients
   let cn=0; const storno=[];
-  // For combo, show GCT clients first, then Walking clients
-  const orderedIds = svc==='combo'
+  // For combo/gct-auto, show GCT clients first, then Walking clients
+  const isComboLike = svc==='combo'||svc==='gct-auto';
+  const orderedIds = isComboLike
     ? [...cIds.filter(id=>!cData[id].cancelled&&cData[id].tour_type==='gct'), ...cIds.filter(id=>!cData[id].cancelled&&(cData[id].tour_type||'walk')==='walk'), ...cIds.filter(id=>cData[id].cancelled)]
     : cIds;
 
-  if(svc==='combo'){
+  if(isComboLike){
     const gctIds=cIds.filter(id=>!cData[id].cancelled&&cData[id].tour_type==='gct');
     const walkIds=cIds.filter(id=>!cData[id].cancelled&&(cData[id].tour_type||'walk')==='walk');
     const cancelIds=cIds.filter(id=>cData[id].cancelled);
