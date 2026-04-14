@@ -214,6 +214,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
           <button class="stab" onclick="setSvc('gct')" id="t-gct">Grand City Tour (3 hod)</button>
           <button class="stab" onclick="setSvc('combo')" id="t-combo">GCT + 1 hod</button>
           <button class="stab" onclick="setSvc('gct-auto')" id="t-gct-auto">GCT vlastne auto</button>
+          <button class="stab" onclick="setSvc('wine')" id="t-wine">Vinny okruh (6 hod)</button>
         </div>
 
         <!-- Walking 1 hod -->
@@ -321,8 +322,24 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
           </div>
         </div>
 
-        <!-- GCT vlastne auto -->
-        <div id="s-gct-auto" style="display:none;">
+        <!-- Wine tour -->
+        <div id="s-wine" style="display:none;">
+          <label>Jazyk</label>
+          <select id="wine-lang" onchange="updateWinePrice()">
+            <option value="EN">Anglictina</option>
+            <option value="DE">Nemcina</option>
+            <option value="ES">Spanielcina</option>
+            <option value="FR">Francuzstina</option>
+            <option value="IT">Taliancina</option>
+          </select>
+          <div class="pbox" style="margin-top:13px;">
+            <div>
+              <div class="pbox-l">Malokarpatsky vinny okruh · 6 hod</div>
+              <div class="pbox-s" id="wine-sub">Anglictina</div>
+            </div>
+            <div class="pbox-v" id="wine-val">125 EUR</div>
+          </div>
+        </div>
           <div style="padding:11px 15px;background:var(--accent-l);border:1px solid #b6d4bc;border-radius:var(--r);margin-top:4px;">
             <div style="font-size:12px;color:var(--accent);font-weight:600;">Bratislava Grand City Tour — vlastne auto</div>
             <div style="font-size:11px;color:var(--text2);margin-top:3px;">Jazyk: Anglictina · Ms Daria Juhasova</div>
@@ -486,6 +503,14 @@ const FIXED_WALK_P = {
   walk3:  { EN:78, DE:78, ES:125, FR:125, IT:125 }
 };
 
+const WINE_P = { EN:125, DE:125, ES:210, FR:210, IT:210 };
+
+function updateWinePrice(){
+  const lang = document.getElementById('wine-lang').value;
+  document.getElementById('wine-val').textContent = WINE_P[lang] + ' EUR';
+  document.getElementById('wine-sub').textContent = LANG_SK[lang];
+}
+
 function getWalkPrice(lang, pax) {
   const tiers = WALK_TIERS[lang] || WALK_TIERS['EN'];
   for (const t of tiers) { if (pax <= t.max) return t.p; }
@@ -568,6 +593,7 @@ function getSvcPrice() {
     const wp = walkPax > 0 ? getWalkPrice('EN', walkPax) : 0;
     return (98 + Math.round(wp*0.5))+' EUR';
   }
+  if(svc==='wine') return WINE_P[document.getElementById('wine-lang').value]+' EUR';
   // combo
   const lang = document.getElementById('combo-lang').value;
   const walkPax = getWalkPaxCombo();
@@ -583,6 +609,7 @@ function getSvcLang() {
   if(svc==='walk3') return document.getElementById('w3-lang').value;
   if(svc==='gct') return document.getElementById('gct-lang').value;
   if(svc==='gct-auto') return 'EN';
+  if(svc==='wine') return document.getElementById('wine-lang').value;
   return document.getElementById('combo-lang').value;
 }
 
@@ -634,7 +661,7 @@ let svc='walk';
 
 function setSvc(type){
   svc=type;
-  const allTypes=['walk1','walk15','walk2','walk3','gct','combo','gct-auto'];
+  const allTypes=['walk1','walk15','walk2','walk3','gct','combo','gct-auto','wine'];
   allTypes.forEach(t=>{
     const tab=document.getElementById('t-'+t);
     const sec=document.getElementById('s-'+t);
@@ -646,7 +673,7 @@ function setSvc(type){
   document.getElementById('combo-extra').style.display=type==='combo'?'block':'none';
   document.getElementById('gct-end-wrap').style.display=(type==='gct'||type==='combo')?'block':'none';
   // Duration
-  const durMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod'};
+  const durMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod'};
   document.getElementById('f-dur').value=durMap[type]||'1 hod';
   // Show/hide extra fields
   document.getElementById('gct-extra').style.display=(type==='gct'||type==='gct-auto')?'block':'none';
@@ -659,6 +686,7 @@ function setSvc(type){
   if(type==='walk2') updateFixedWalkPrice('walk2');
   if(type==='walk3') updateFixedWalkPrice('walk3');
   if(type==='gct-auto') updateGCTAutoPrice();
+  if(type==='wine') updateWinePrice();
 }
 
 // ── Guide modal ───────────────────────────────────────────
@@ -857,6 +885,10 @@ function generate(){
     lines.push('Dobry den, p Daria,');
     lines.push('');
     lines.push(isAmend?'Zasielam Vam zmenu v objednavke na Bratislava Grand City Tour vlastnym autom.':'Zasielam Vam novu objednavku na Bratislava Grand City Tour vlastnym autom.');
+  } else if(svc==='wine'){
+    lines.push('Dobry den,');
+    lines.push('');
+    lines.push(isAmend?'Zasielam Vam zmenu v objednavke na Malokarpatsky vinny okruh.':'Zasielam Vam novu objednavku na Malokarpatsky vinny okruh.');
   } else {
     lines.push('Dobry den,');
     lines.push('');
@@ -874,6 +906,8 @@ function generate(){
     lines.push('Servis: 3 hod Grand City Tour v '+langSk+' ('+langEn+')');
   } else if(svc==='gct-auto'){
     lines.push('Servis: Bratislava Grand City Tour vlastnym autom (English)');
+  } else if(svc==='wine'){
+    lines.push('Servis: 6 hod Malokarpatsky vinny okruh v '+langSk+' ('+langEn+')');
   } else {
     lines.push('Servis: pesia prehliadka Bratislavy + Grand City Tour v '+langSk+' ('+langEn+')');
   }
@@ -946,6 +980,19 @@ function generate(){
 
   lines.push('');
   lines.push('CENA: '+getSvcPrice()+' / UHRADA: '+pay);
+
+  // Wine tour itinerary
+  if(svc==='wine'){
+    lines.push('');
+    lines.push('Itinerar:');
+    lines.push('Prijazd na Cerveny Kamen,');
+    lines.push(' - Vstup do Cerveneho Kamena - vstup do hradu si hradia klienti v pripade zaujmu sami, Vy ako sprievodca mate gratis.');
+    lines.push('Kratka prehliadka Pezinka');
+    lines.push('Kratka zastavka vo Sv. Jure');
+    lines.push('Degustacia vina, 3 vzorky so zakusom - hradene E-TRAVEL.SK - vstup o 17:05');
+    lines.push('Degustacia vina bude vo Vinocentrum Svaty Jur Prostredna 4/48, Svaty Jur 0904 563917 alebo 02/449 710 42 - Mr. Brano Bahna');
+  }
+
   lines.push('');
   lines.push('');
   lines.push('Poprosim Vas o kratke potvrdenie.');
@@ -1179,36 +1226,4 @@ function filterHistory(){
   }) : data;
 
   const count=document.getElementById('h-count');
-  if(q) count.textContent = 'Nájdených: '+filtered.length+' z '+data.length;
-  else count.textContent = 'Celkom: '+data.length+' záznamov';
-
-  if(!filtered.length){el.innerHTML='<div class="empty"><p>Žiadne výsledky pre "'+esc(q)+'".</p></div>';return;}
-
-  el.innerHTML=filtered.map(h=>{
-    let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
-    const st=h.service_type==='gct'?'GCT':h.service_type==='combo'?'Combo':'Walking';
-    const henc=encodeURIComponent(JSON.stringify(h));
-    // Highlight matching text
-    const clientDisplay = cn.map(n=>q&&n.toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(n)+'</mark>':esc(n)).join(', ')||'—';
-    const guideDisplay = q&&(h.guide_name||'').toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(h.guide_name||'—')+'</mark>':esc(h.guide_name||'—');
-    return `<div class="hi">
-      <div class="hd">${h.date?fmtDate(h.date):'—'}<br>${new Date(h.created_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:var(--text3);font-size:10px;">${esc(h.sender_name||'')}</span></div>
-      <div class="hinfo">
-        <div class="hg">${guideDisplay} <span class="pill pb">${st}</span>${h.is_amendment?'<span class="pill pw" style="margin-left:4px;">zmena</span>':''}</div>
-        <div class="hc">${clientDisplay}</div>
-      </div>
-      <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
-        <button class="btn btn-w" style="font-size:12px;padding:5px 9px;" onclick="openAmend('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Zmena</button>
-        <button class="btn btn-d" style="font-size:12px;padding:5px 9px;" onclick="openStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Storno</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-document.getElementById('gmodal').addEventListener('click',function(e){if(e.target===this)closeGM();});
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="initApp()" onerror="alert('Chyba načítania. Skontroluj internet.')"></script>
-</body>
-</html>
+  if(q) count.textContent = 'Nájdených: '+filtered.leng
