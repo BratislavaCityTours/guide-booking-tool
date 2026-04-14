@@ -636,7 +636,13 @@ async function initApp() {
 }
 
 function showSetup(){document.getElementById('setup').style.display='flex';document.getElementById('app').style.display='none';}
-function showApp(){document.getElementById('setup').style.display='none';document.getElementById('app').style.display='flex';refreshGuides();addClient();}
+function showApp(){
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='flex';
+  setSvc('walk1');
+  refreshGuides();
+  addClient();
+}
 
 async function saveConfig(){
   const url=document.getElementById('cfg-url').value.trim().replace(/\/$/,'');
@@ -660,7 +666,7 @@ function nav(page){
 }
 
 // ── Service type ──────────────────────────────────────────
-let svc='walk';
+let svc='walk1';
 
 function setSvc(type){
   svc=type;
@@ -671,10 +677,6 @@ function setSvc(type){
     if(tab) tab.classList.toggle('on',t===type);
     if(sec) sec.style.display=t===type?'block':'none';
   });
-  // Show/hide extra fields
-  document.getElementById('gct-extra').style.display=type==='gct'?'block':'none';
-  document.getElementById('combo-extra').style.display=type==='combo'?'block':'none';
-  document.getElementById('gct-end-wrap').style.display=(type==='gct'||type==='combo')?'block':'none';
   // Duration
   const durMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod'};
   document.getElementById('f-dur').value=durMap[type]||'1 hod';
