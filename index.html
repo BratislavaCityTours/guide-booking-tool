@@ -215,6 +215,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
           <button class="stab" onclick="setSvc('combo')" id="t-combo">GCT + 1 hod</button>
           <button class="stab" onclick="setSvc('gct-auto')" id="t-gct-auto">GCT vlastne auto</button>
           <button class="stab" onclick="setSvc('wine')" id="t-wine">Vinny okruh (6 hod)</button>
+          <button class="stab" onclick="setSvc('devin')" id="t-devin">GCT + Devin (3 hod)</button>
         </div>
 
         <!-- Walking 1 hod -->
@@ -338,6 +339,25 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
               <div class="pbox-s" id="wine-sub">Anglictina</div>
             </div>
             <div class="pbox-v" id="wine-val">125 EUR</div>
+          </div>
+        </div>
+
+        <!-- Devin -->
+        <div id="s-devin" style="display:none;">
+          <label>Jazyk</label>
+          <select id="devin-lang" onchange="updateDevinPrice()">
+            <option value="EN">Anglictina</option>
+            <option value="DE">Nemcina</option>
+            <option value="ES">Spanielcina</option>
+            <option value="FR">Francuzstina</option>
+            <option value="IT">Taliancina</option>
+          </select>
+          <div class="pbox" style="margin-top:13px;">
+            <div>
+              <div class="pbox-l">GCT + Hrad Devin · 3 hod</div>
+              <div class="pbox-s" id="devin-sub">Anglictina</div>
+            </div>
+            <div class="pbox-v" id="devin-val">110 EUR</div>
           </div>
         </div>
 
@@ -507,11 +527,18 @@ const FIXED_WALK_P = {
 };
 
 const WINE_P = { EN:125, DE:125, ES:210, FR:210, IT:210 };
+const DEVIN_P = { EN:110, DE:110, ES:190, FR:190, IT:190 };
 
 function updateWinePrice(){
   const lang = document.getElementById('wine-lang').value;
   document.getElementById('wine-val').textContent = WINE_P[lang] + ' EUR';
   document.getElementById('wine-sub').textContent = LANG_SK[lang];
+}
+
+function updateDevinPrice(){
+  const lang = document.getElementById('devin-lang').value;
+  document.getElementById('devin-val').textContent = DEVIN_P[lang] + ' EUR';
+  document.getElementById('devin-sub').textContent = LANG_SK[lang];
 }
 
 function getWalkPrice(lang, pax) {
@@ -597,6 +624,7 @@ function getSvcPrice() {
     return (98 + Math.round(wp*0.5))+' EUR';
   }
   if(svc==='wine') return WINE_P[document.getElementById('wine-lang').value]+' EUR';
+  if(svc==='devin') return DEVIN_P[document.getElementById('devin-lang').value]+' EUR';
   // combo
   const lang = document.getElementById('combo-lang').value;
   const walkPax = getWalkPaxCombo();
@@ -613,6 +641,7 @@ function getSvcLang() {
   if(svc==='gct') return document.getElementById('gct-lang').value;
   if(svc==='gct-auto') return 'EN';
   if(svc==='wine') return document.getElementById('wine-lang').value;
+  if(svc==='devin') return document.getElementById('devin-lang').value;
   return document.getElementById('combo-lang').value;
 }
 
@@ -670,7 +699,7 @@ let svc='walk1';
 
 function setSvc(type){
   svc=type;
-  const allTypes=['walk1','walk15','walk2','walk3','gct','combo','gct-auto','wine'];
+  const allTypes=['walk1','walk15','walk2','walk3','gct','combo','gct-auto','wine','devin'];
   allTypes.forEach(t=>{
     const tab=document.getElementById('t-'+t);
     const sec=document.getElementById('s-'+t);
@@ -678,7 +707,7 @@ function setSvc(type){
     if(sec) sec.style.display=t===type?'block':'none';
   });
   // Duration
-  const durMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod'};
+  const durMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod',devin:'3 hod'};
   document.getElementById('f-dur').value=durMap[type]||'1 hod';
   // Show/hide extra fields
   document.getElementById('gct-extra').style.display=(type==='gct'||type==='gct-auto')?'block':'none';
@@ -692,6 +721,7 @@ function setSvc(type){
   if(type==='walk3') updateFixedWalkPrice('walk3');
   if(type==='gct-auto') updateGCTAutoPrice();
   if(type==='wine') updateWinePrice();
+  if(type==='devin') updateDevinPrice();
 }
 
 // ── Guide modal ───────────────────────────────────────────
@@ -913,6 +943,8 @@ function generate(){
     lines.push('Servis: Bratislava Grand City Tour vlastnym autom (English)');
   } else if(svc==='wine'){
     lines.push('Servis: 6 hod Malokarpatsky vinny okruh v '+langSk+' ('+langEn+')');
+  } else if(svc==='devin'){
+    lines.push('Servis: Bratislava Grand City Tour with Devin Castle v '+langSk+' ('+langEn+')');
   } else {
     lines.push('Servis: pesia prehliadka Bratislavy + Grand City Tour v '+langSk+' ('+langEn+')');
   }
@@ -996,6 +1028,14 @@ function generate(){
     lines.push('Kratka zastavka vo Sv. Jure');
     lines.push('Degustacia vina, 3 vzorky so zakusom - hradene E-TRAVEL.SK - vstup o 17:05');
     lines.push('Degustacia vina bude vo Vinocentrum Svaty Jur Prostredna 4/48, Svaty Jur 0904 563917 alebo 02/449 710 42 - Mr. Brano Bahna');
+  }
+
+  // Devin note
+  if(svc==='devin'){
+    lines.push('');
+    lines.push('Note: 14:00 - 15:00 panoramaticka prehliadka, 15:00 odjazd na hrad Devin,');
+    lines.push('16:30 odjazd z hradu Devin, 17:00 koniec.');
+    lines.push('Klienti nemaju v cene vstup na hrad Devin, ak chcu mozu si kupit. Vy mate vstup ako guide bezplatny.');
   }
 
   lines.push('');
