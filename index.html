@@ -1226,4 +1226,36 @@ function filterHistory(){
   }) : data;
 
   const count=document.getElementById('h-count');
-  if(q) count.textContent = 'Nájdených: '+filtered.leng
+  if(q) count.textContent = 'Nájdených: '+filtered.length+' z '+data.length;
+  else count.textContent = 'Celkom: '+data.length+' záznamov';
+
+  if(!filtered.length){el.innerHTML='<div class="empty"><p>Žiadne výsledky pre "'+esc(q)+'".</p></div>';return;}
+
+  el.innerHTML=filtered.map(h=>{
+    let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
+    const st=h.service_type==='gct'?'GCT':h.service_type==='combo'?'Combo':'Walking';
+    const henc=encodeURIComponent(JSON.stringify(h));
+    // Highlight matching text
+    const clientDisplay = cn.map(n=>q&&n.toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(n)+'</mark>':esc(n)).join(', ')||'—';
+    const guideDisplay = q&&(h.guide_name||'').toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(h.guide_name||'—')+'</mark>':esc(h.guide_name||'—');
+    return `<div class="hi">
+      <div class="hd">${h.date?fmtDate(h.date):'—'}<br>${new Date(h.created_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:var(--text3);font-size:10px;">${esc(h.sender_name||'')}</span></div>
+      <div class="hinfo">
+        <div class="hg">${guideDisplay} <span class="pill pb">${st}</span>${h.is_amendment?'<span class="pill pw" style="margin-left:4px;">zmena</span>':''}</div>
+        <div class="hc">${clientDisplay}</div>
+      </div>
+      <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+        <button class="btn btn-w" style="font-size:12px;padding:5px 9px;" onclick="openAmend('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Zmena</button>
+        <button class="btn btn-d" style="font-size:12px;padding:5px 9px;" onclick="openStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Storno</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+document.getElementById('gmodal').addEventListener('click',function(e){if(e.target===this)closeGM();});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="initApp()" onerror="alert('Chyba načítania. Skontroluj internet.')"></script>
+</body>
+</html>
