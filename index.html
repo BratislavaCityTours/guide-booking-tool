@@ -1242,8 +1242,19 @@ function openStorno(id, h){
   lines.push('');
   lines.push('---');
   lines.push('');
-  const svcDurMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod'};
-  const svcLbl = (h.service_type==='gct')?'Grand City Tour':(h.service_type==='combo')?'Grand City Tour + Walking Tour':'pesia prehliadka Bratislavy';
+  const svcDurMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod',devin:'5 hod'};
+  const svcLblMap={
+    walk1:'pesia prehliadka Bratislavy',
+    walk15:'pesia prehliadka Bratislavy',
+    walk2:'pesia prehliadka Bratislavy',
+    walk3:'pesia prehliadka Bratislavy',
+    gct:'Grand City Tour',
+    combo:'Grand City Tour + Walking Tour',
+    'gct-auto':'Bratislava Grand City Tour vlastnym autom',
+    wine:'Malokarpatsky vinny okruh',
+    devin:'Bratislava Grand City Tour with Devin Castle'
+  };
+  const svcLbl = svcLblMap[h.service_type] || 'pesia prehliadka Bratislavy';
   lines.push('Servis: '+(svcDurMap[h.service_type]||'')+ ' '+svcLbl);
   lines.push('Datum: ' + date);
   if(h.meeting) lines.push('Cas: ' + h.meeting);
