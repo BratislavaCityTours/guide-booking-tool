@@ -1349,7 +1349,8 @@ function filterHistory(){
 
   el.innerHTML=filtered.map(h=>{
     let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
-    const st=h.service_type==='gct'?'GCT':h.service_type==='combo'?'Combo':'Walking';
+    const stMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'GCT',combo:'Combo','gct-auto':'GCT Auto',wine:'Vinny okruh',devin:'GCT+Devin'};
+    const st=stMap[h.service_type]||'Walking';
     const henc=encodeURIComponent(JSON.stringify(h));
     // Highlight matching text
     const clientDisplay = cn.map(n=>q&&n.toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(n)+'</mark>':esc(n)).join(', ')||'—';
@@ -1363,9 +1364,18 @@ function filterHistory(){
       <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
         <button class="btn btn-w" style="font-size:12px;padding:5px 9px;" onclick="openAmend('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Zmena</button>
         <button class="btn btn-d" style="font-size:12px;padding:5px 9px;" onclick="openStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Storno</button>
+        <button class="btn btn-g" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger-l);" onclick="deleteBooking('${h.id}')">Zmazat</button>
       </div>
     </div>`;
   }).join('');
+}
+
+async function deleteBooking(id){
+  if(!confirm('Zmazat tuto objednavku z historie?')) return;
+  const{error}=await SB.from('bookings').delete().eq('id',id);
+  if(error){alert('Chyba: '+error.message);return;}
+  historyCache=historyCache.filter(h=>h.id!==id);
+  filterHistory();
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
