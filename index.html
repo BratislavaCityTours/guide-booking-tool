@@ -1219,6 +1219,12 @@ function openAmend(id,h){
 async function openStorno(id, h){
   if(!confirm('Vygenerovat storno celej objednavky?')) return;
 
+  // Auto-fill sender from original booking
+  if(h.sender_key){
+    document.getElementById('f-sender').value = h.sender_key;
+    onSender();
+  }
+
   const sender = getSender();
   if(!sender){ alert('Vyber objednavatela v compose.'); nav('compose'); return; }
 
