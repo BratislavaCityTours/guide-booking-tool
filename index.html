@@ -129,7 +129,21 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
 </head>
 <body>
 
-<div class="setup" id="setup">
+<div class="setup" id="pwd-screen" style="display:none;">
+  <div class="setup-box" style="width:400px;">
+    <h2>🔐 e-travel.sk</h2>
+    <p>Prihlás sa svojím firemným emailom a heslom.</p>
+    <label>Email</label>
+    <input type="email" id="login-email" placeholder="meno@e-travel.sk" style="margin-bottom:12px;">
+    <label>Heslo</label>
+    <input type="password" id="login-password" placeholder="Heslo..." style="margin-bottom:18px;" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn btn-p btn-fw" style="padding:11px;" onclick="doLogin()">Prihlásiť sa</button>
+    <p id="login-error" style="margin-top:10px;font-size:13px;color:var(--danger);display:none;">Nesprávny email alebo heslo.</p>
+    <p id="login-loading" style="margin-top:10px;font-size:13px;color:var(--text2);display:none;">Prihlasovanie...</p>
+  </div>
+</div>
+
+<div class="setup" id="setup" style="display:none;">
   <div class="setup-box">
     <h2>⚙️ Konfigurácia pripojenia</h2>
     <p>Zadaj Supabase údaje pre zdieľanú databázu. Každý zamestnanec to urobí raz.</p>
@@ -172,6 +186,10 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
       <button class="nb" onclick="resetConfig()" style="font-size:12px;">
         <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8a6 6 0 1010.93-3.36M2 8V4m0 4H6"/></svg>
         Zmeniť DB pripojenie
+      </button>
+      <button class="nb" onclick="logout()" style="font-size:12px;">
+        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6"/></svg>
+        Odhlásiť
       </button>
     </nav>
   </aside>
@@ -702,6 +720,36 @@ function getSvcLang() {
   return document.getElementById('combo-lang').value;
 }
 
+// ── Supabase Auth ─────────────────────────────────────────
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if(!email||!password){ document.getElementById('login-error').style.display='block'; return; }
+
+  document.getElementById('login-error').style.display='none';
+  document.getElementById('login-loading').style.display='block';
+
+  try {
+    const {data, error} = await SB.auth.signInWithPassword({email, password});
+    document.getElementById('login-loading').style.display='none';
+    if(error){ document.getElementById('login-error').style.display='block'; return; }
+    // Logged in
+    document.getElementById('pwd-screen').style.display='none';
+    // Update sidebar with user name
+    const userName = email.split('@')[0];
+    document.getElementById('sb-sender').textContent = userName;
+    showApp();
+  } catch(e){
+    document.getElementById('login-loading').style.display='none';
+    document.getElementById('login-error').style.display='block';
+  }
+}
+
+async function logout(){
+  await SB.auth.signOut();
+  window.location.reload();
+}
+
 // ── Supabase ──────────────────────────────────────────────
 let SB = null;
 
@@ -710,15 +758,7 @@ async function loadSB() {
 }
 
 async function initApp() {
-  await loadSB();
-  const url=localStorage.getItem('sb_url'), key=localStorage.getItem('sb_key');
-  if(!url||!key){showSetup();return;}
-  try {
-    SB=window.supabase.createClient(url,key);
-    const{error}=await SB.from('guides').select('id').limit(1);
-    if(error&&error.code!=='PGRST116')throw error;
-    showApp();
-  } catch(e){showSetup();}
+  await bootApp();
 }
 
 function showSetup(){document.getElementById('setup').style.display='flex';document.getElementById('app').style.display='none';}
@@ -728,8 +768,24 @@ function showApp(){
   setSvc('walk1');
   refreshGuides();
   addClient();
-  // Load prices from DB on startup
   SB.from('settings').select('*').then(({data})=>{ if(data) applyPricesToApp(data); });
+}
+
+async function bootApp(){
+  await loadSB();
+  const url=localStorage.getItem('sb_url'), key=localStorage.getItem('sb_key');
+  if(!url||!key){ showSetup(); return; }
+  SB = window.supabase.createClient(url, key);
+
+  // Check if already logged in
+  const { data: { session } } = await SB.auth.getSession();
+  if(session){
+    document.getElementById('pwd-screen').style.display='none';
+    showApp();
+  } else {
+    document.getElementById('pwd-screen').style.display='flex';
+    setTimeout(()=>document.getElementById('login-email').focus(), 100);
+  }
 }
 
 async function saveConfig(){
@@ -739,7 +795,8 @@ async function saveConfig(){
   localStorage.setItem('sb_url',url);localStorage.setItem('sb_key',key);
   await initApp();
 }
-function resetConfig(){if(!confirm('Zmeniť pripojenie?'))return;localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');SB=null;showSetup();}
+function resetConfig(){if(!confirm('Zmeniť pripojenie?'))return;localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');SB=null;window.location.reload();}
+function logout(){localStorage.removeItem('bct_auth');window.location.reload();}
 
 // ── Navigation ────────────────────────────────────────────
 function nav(page){
@@ -1497,6 +1554,6 @@ async function savePrices(){
 
 document.getElementById('gmodal').addEventListener('click',function(e){if(e.target===this)closeGM();});
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="initApp()" onerror="alert('Chyba načítania. Skontroluj internet.')"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="bootApp()" onerror="alert('Chyba načítania. Skontroluj internet.')"></script>
 </body>
 </html>
