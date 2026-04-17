@@ -1185,10 +1185,10 @@ function resetForm(){
 
 function openAmend(id,h){
   cIds=[];cCnt=0;cData={};lastTxt='';lastSubj='';
+  amendId=id; stornoId=null;
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
-  amendId=id;
   if(h.date)document.getElementById('f-date').value=h.date;
   if(h.meeting)document.getElementById('f-meet').value=h.meeting;
   if(h.duration)document.getElementById('f-dur').value=h.duration;
