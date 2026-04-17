@@ -1119,10 +1119,10 @@ function generate(){
 }
 
 function openOutlook(e){
-  e.preventDefault();
-  if(!lastTxt){alert('Najskôr vygeneruj email.');return;}
-  const guideEmail=getGuideEmail();
-  if(!guideEmail){alert('Guide nemá zadaný email.');return;}
+  if(e) e.preventDefault();
+  if(!lastTxt){alert('Najskor vygeneruj email.');return;}
+  const guideEmail = stornoId ? (window._stornoGuideEmail || getGuideEmail()) : getGuideEmail();
+  if(!guideEmail){alert('Guide nema zadany email.');return;}
   window.location.href='mailto:'+encodeURIComponent(guideEmail)
     +'?subject='+encodeURIComponent(lastSubj)
     +'&body='+encodeURIComponent(lastTxt);
@@ -1167,7 +1167,7 @@ async function saveHist(){
 }
 
 function resetForm(){
-  cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';
+  cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';window._stornoGuideEmail=null;
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
@@ -1324,6 +1324,9 @@ async function openStorno(id, h){
   const idx = historyCache.findIndex(x => x.id === id);
   if(idx !== -1){ historyCache[idx].is_storno = true; }
 
+  // Store guide email for openOutlook
+  window._stornoGuideEmail = guideEmail;
+
   // Show email output
   lastTxt = txt;
   lastSubj = subj;
@@ -1332,11 +1335,11 @@ async function openStorno(id, h){
   out.style.display = 'block';
   document.getElementById('out-acts').style.display = 'flex';
 
-  // Set outlook button
+  // Restore outlook button to use openOutlook function
   const outlookBtn = document.getElementById('outlook-btn');
-  if(outlookBtn && guideEmail){
-    outlookBtn.href = 'mailto:'+encodeURIComponent(guideEmail)+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(txt);
-    outlookBtn.onclick = null;
+  if(outlookBtn){
+    outlookBtn.href = '#';
+    outlookBtn.onclick = openOutlook;
   }
 
   nav('compose');
