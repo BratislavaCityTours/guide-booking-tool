@@ -1216,7 +1216,7 @@ function openAmend(id,h){
   nav('compose');window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function openStorno(id, h){
+async function openStorno(id, h){
   if(!confirm('Vygenerovat storno celej objednavky?')) return;
 
   const sender = getSender();
@@ -1225,8 +1225,6 @@ function openStorno(id, h){
   const date = h.date ? fmtDate(h.date) : '-';
   const guideName = h.guide_name || 'Guide';
   const guideEmail = (() => {
-    const sel = document.getElementById('f-guide');
-    // Try to find guide email from cache
     const g = guidesCache.find(x => x.id === h.guide_id);
     return g ? g.email : '';
   })();
@@ -1276,22 +1274,39 @@ function openStorno(id, h){
   lines.push(sender.phone);
 
   const txt = lines.join('\n');
-
-  // Build subject
   const clientParts = activeClients.map(c => (c.name||'')+(c.pax?', '+c.pax+' pax':'')+(c.voucher?', '+c.voucher:'')).filter(Boolean);
   const subj = 'Storno objednavky, '+guideName+', '+date+(clientParts.length?', '+clientParts.slice(0,2).join(' | '):'');
 
+  // Save storno to DB as new record
+  await SB.from('bookings').insert({
+    date: h.date,
+    guide_id: h.guide_id,
+    guide_name: h.guide_name,
+    sender_key: document.getElementById('f-sender').value || h.sender_key,
+    sender_name: sender.name,
+    service_type: h.service_type,
+    lang: h.lang,
+    meeting: h.meeting,
+    duration: h.duration,
+    payment: h.payment,
+    text: txt,
+    subject: subj,
+    clients: h.clients,
+    client_names: h.client_names,
+    is_amendment: false,
+    is_storno: true,
+    created_at: new Date().toISOString()
+  });
+
   // Show in compose
+  lastTxt = txt;
+  lastSubj = subj;
   const out = document.getElementById('out');
   out.textContent = txt;
   out.style.display = 'block';
-  lastTxt = txt;
-  lastSubj = subj;
-
-  // Update outlook button
   document.getElementById('out-acts').style.display = 'flex';
 
-  // Override outlook to use correct guide email
+  // Set outlook button
   const outlookBtn = document.getElementById('outlook-btn');
   if(outlookBtn && guideEmail){
     outlookBtn.href = 'mailto:'+encodeURIComponent(guideEmail)+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(txt);
@@ -1358,7 +1373,7 @@ function filterHistory(){
     return `<div class="hi">
       <div class="hd">${h.date?fmtDate(h.date):'—'}<br>${new Date(h.created_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:var(--text3);font-size:10px;">${esc(h.sender_name||'')}</span></div>
       <div class="hinfo">
-        <div class="hg">${guideDisplay} <span class="pill pb">${st}</span>${h.is_amendment?'<span class="pill pw" style="margin-left:4px;">zmena</span>':''}</div>
+        <div class="hg">${guideDisplay} <span class="pill pb">${st}</span>${h.is_amendment?'<span class="pill pw" style="margin-left:4px;">zmena</span>':''}${h.is_storno?'<span class="pill" style="margin-left:4px;background:var(--danger-l);color:var(--danger);">STORNO</span>':''}</div>
         <div class="hc">${clientDisplay}</div>
       </div>
       <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
