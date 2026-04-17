@@ -938,7 +938,7 @@ function removeC(id){cIds=cIds.filter(x=>x!==id);delete cData[id];const e=docume
 function renum(){cIds.forEach((id,i)=>{const b=document.getElementById('cbn'+id);if(b)b.textContent=(cData[id].cancelled?'STORNO · ':'')+'Klient '+(i+1);});}
 
 // ── Generate ──────────────────────────────────────────────
-let amendId=null,lastTxt='',lastSubj='';
+let amendId=null,stornoId=null,lastTxt='',lastSubj='';
 function gv(id){const e=document.getElementById(id);return e?e.value.trim():'';}
 function fmtDate(d){if(!d)return'';const[y,m,day]=d.split('-');return`${day}.${m}.${y}`;}
 
@@ -1138,6 +1138,7 @@ function copyTxt(){
 
 async function saveHist(){
   if(!lastTxt)return;
+  if(stornoId){ alert('Storno sa uklada automaticky — nie je potrebne ukladat znova.'); return; }
   const sel=document.getElementById('f-guide'),opt=sel.options[sel.selectedIndex];
   const senderKey=document.getElementById('f-sender').value;
   const row={
@@ -1161,12 +1162,12 @@ async function saveHist(){
     is_amendment:!!amendId,
     created_at:new Date().toISOString()
   };
-  if(amendId){await SB.from('bookings').update(row).eq('id',amendId);alert('Zmena uložená!');}
-  else{await SB.from('bookings').insert(row);alert('Uložené do histórie!');}
+  if(amendId){await SB.from('bookings').update(row).eq('id',amendId);alert('Zmena ulozena!');}
+  else{await SB.from('bookings').insert(row);alert('Ulozene do historie!');}
 }
 
 function resetForm(){
-  cIds=[];cCnt=0;cData={};amendId=null;lastTxt='';lastSubj='';
+  cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
@@ -1217,7 +1218,13 @@ function openAmend(id,h){
 }
 
 async function openStorno(id, h){
+  // Check if already storno
+  if(h.is_storno){ alert('Tato objednavka je uz stornovana — neda sa stornovat znova.'); return; }
+
   if(!confirm('Vygenerovat storno celej objednavky?')) return;
+
+  // Set stornoId so saveHist won't create new record
+  stornoId = id;
 
   // Auto-fill sender from original booking
   if(h.sender_key){
