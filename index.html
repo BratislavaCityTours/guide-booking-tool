@@ -1248,18 +1248,14 @@ async function openStorno(id, h){
   lines.push('');
   const svcDurMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod',devin:'5 hod'};
   const svcLblMap={
-    walk1:'pesia prehliadka Bratislavy',
-    walk15:'pesia prehliadka Bratislavy',
-    walk2:'pesia prehliadka Bratislavy',
-    walk3:'pesia prehliadka Bratislavy',
-    gct:'Grand City Tour',
-    combo:'Grand City Tour + Walking Tour',
+    walk1:'pesia prehliadka Bratislavy',walk15:'pesia prehliadka Bratislavy',
+    walk2:'pesia prehliadka Bratislavy',walk3:'pesia prehliadka Bratislavy',
+    gct:'Grand City Tour',combo:'Grand City Tour + Walking Tour',
     'gct-auto':'Bratislava Grand City Tour vlastnym autom',
-    wine:'Malokarpatsky vinny okruh',
-    devin:'Bratislava Grand City Tour with Devin Castle'
+    wine:'Malokarpatsky vinny okruh',devin:'Bratislava Grand City Tour with Devin Castle'
   };
   const svcLbl = svcLblMap[h.service_type] || 'pesia prehliadka Bratislavy';
-  lines.push('Servis: '+(svcDurMap[h.service_type]||'')+ ' '+svcLbl);
+  lines.push('Servis: '+(svcDurMap[h.service_type]||'')+' '+svcLbl);
   lines.push('Datum: ' + date);
   if(h.meeting) lines.push('Cas: ' + h.meeting);
   lines.push('');
@@ -1283,28 +1279,14 @@ async function openStorno(id, h){
   const clientParts = activeClients.map(c => (c.name||'')+(c.pax?', '+c.pax+' pax':'')+(c.voucher?', '+c.voucher:'')).filter(Boolean);
   const subj = 'Storno objednavky, '+guideName+', '+date+(clientParts.length?', '+clientParts.slice(0,2).join(' | '):'');
 
-  // Save storno to DB as new record
-  await SB.from('bookings').insert({
-    date: h.date,
-    guide_id: h.guide_id,
-    guide_name: h.guide_name,
-    sender_key: document.getElementById('f-sender').value || h.sender_key,
-    sender_name: sender.name,
-    service_type: h.service_type,
-    lang: h.lang,
-    meeting: h.meeting,
-    duration: h.duration,
-    payment: h.payment,
-    text: txt,
-    subject: subj,
-    clients: h.clients,
-    client_names: h.client_names,
-    is_amendment: false,
-    is_storno: true,
-    created_at: new Date().toISOString()
-  });
+  // Update existing record as storno — no new record created
+  await SB.from('bookings').update({ is_storno: true, text: txt, subject: subj }).eq('id', id);
 
-  // Show in compose
+  // Update local cache
+  const idx = historyCache.findIndex(x => x.id === id);
+  if(idx !== -1){ historyCache[idx].is_storno = true; }
+
+  // Show email output
   lastTxt = txt;
   lastSubj = subj;
   const out = document.getElementById('out');
