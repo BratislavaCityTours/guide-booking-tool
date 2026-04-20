@@ -465,6 +465,9 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
         <label>Čas začiatku &amp; miesto stretnutia</label>
         <input type="text" id="f-meet" placeholder="e.g. 12h00 pred PARK INN DANUBE / ako je vstup na recepciu hotela">
 
+        <label>Koniec sprevadzania</label>
+        <input type="text" id="f-end-guide" placeholder="e.g. 13:00 v Pulitzer SNP">
+
         <!-- GCT / Combo extra fields -->
         <div id="gct-extra" style="display:none;">
           <label>Miesto a čas stretnutia s autom</label>
@@ -489,8 +492,10 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
       <div class="card">
         <div class="ct">Guide (príjemca emailu)</div>
         <div class="gsr">
-          <div style="flex:1;"><label>Vyber guide</label>
-            <select id="f-guide" onchange="onGuide()">
+          <div style="flex:1;">
+            <label>Vyber guide</label>
+            <input type="text" id="guide-search" placeholder="🔍 Hladaj sprievodcu..." oninput="filterGuideSelect()" style="margin-bottom:6px;">
+            <select id="f-guide" onchange="onGuide()" size="1">
               <option value="">— Vyber guide —</option>
             </select>
           </div>
@@ -975,6 +980,19 @@ async function renderGuides(){
     </div>`).join('');
 }
 
+function filterGuideSelect(){
+  const q = (document.getElementById('guide-search').value||'').toLowerCase();
+  const sel = document.getElementById('f-guide');
+  const cur = sel.value;
+  const filtered = q ? guidesCache.filter(g=>
+    g.name.toLowerCase().includes(q) || (g.lang||'').toLowerCase().includes(q)
+  ) : guidesCache;
+  sel.innerHTML = '<option value="">— Vyber guide —</option>' + filtered.map(g=>
+    `<option value="${g.id}" data-email="${esc(g.email||'')}" data-name="${esc(g.name)}" data-phone="${esc(g.phone||'')}">${esc(g.name)}${g.lang?' ('+g.lang+')':''}</option>`
+  ).join('');
+  if(cur) sel.value = cur;
+}
+
 async function refreshGuides(){
   if(!SB)return;
   const{data}=await SB.from('guides').select('*').order('name');
@@ -1105,6 +1123,7 @@ function generate(){
   const isAmend=!!amendId;
   const date=fmtDate(gv('f-date'));
   const meet=gv('f-meet');
+  const endGuide=gv('f-end-guide');
   const car=gv('f-car');
   const car2=gv('f-car2');
   const walkEnd=gv('f-walk-end');
@@ -1151,6 +1170,7 @@ function generate(){
 
   lines.push('Datum: '+date);
   if(meet) lines.push('Cas zaciatok: '+meet);
+  if(endGuide) lines.push('Koniec sprevadzania: '+endGuide);
 
   if(svc==='gct'||svc==='gct-auto'){
     if(car) lines.push('Stretnutie s autom: '+car);
@@ -1290,6 +1310,7 @@ async function saveHist(){
     service_type:svc,
     lang:getSvcLang(),
     meeting:gv('f-meet'),
+    end_guide:gv('f-end-guide'),
     duration:gv('f-dur'),
     payment:gv('f-pay'),
     car_meeting:gv('f-car')||gv('f-car2'),
@@ -1311,8 +1332,9 @@ function resetForm(){
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
-  ['f-date','f-meet','f-car','f-car2','f-walk-end','f-end2'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['f-date','f-meet','f-end-guide','f-car','f-car2','f-walk-end','f-end2'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('f-guide').value='';
+  document.getElementById('guide-search').value='';
   document.getElementById('f-sender').value='';
   document.getElementById('sender-info').style.display='none';
   document.getElementById('sb-sender').textContent='—';
@@ -1323,7 +1345,13 @@ function resetForm(){
   onGuide();setSvc('walk1');addClient();
 }
 
-function openCopyNew(h){
+async function openCopyNew(h){
+  if(!confirm('Skopirovat ako novu objednavku? Stara objednavka bude vymazana z historie.')) return;
+
+  // Delete old booking
+  await SB.from('bookings').delete().eq('id', h.id);
+  historyCache = historyCache.filter(x => x.id !== h.id);
+
   // Same as openAmend but without setting amendId — so it generates as new booking
   cIds=[];cCnt=0;cData={};lastTxt='';lastSubj='';
   amendId=null; stornoId=null;
@@ -1332,6 +1360,7 @@ function openCopyNew(h){
   document.getElementById('out-acts').style.display='none';
   if(h.date)document.getElementById('f-date').value=h.date;
   if(h.meeting)document.getElementById('f-meet').value=h.meeting;
+  if(h.end_guide)document.getElementById('f-end-guide').value=h.end_guide||'';
   if(h.duration)document.getElementById('f-dur').value=h.duration;
   if(h.payment)document.getElementById('f-pay').value=h.payment;
   if(h.car_meeting){const el=document.getElementById('f-car')||document.getElementById('f-car2');if(el)el.value=h.car_meeting;}
@@ -1362,6 +1391,7 @@ function openAmend(id,h){
   document.getElementById('out-acts').style.display='none';
   if(h.date)document.getElementById('f-date').value=h.date;
   if(h.meeting)document.getElementById('f-meet').value=h.meeting;
+  if(h.end_guide)document.getElementById('f-end-guide').value=h.end_guide||'';
   if(h.duration)document.getElementById('f-dur').value=h.duration;
   if(h.payment)document.getElementById('f-pay').value=h.payment;
   if(h.car_meeting){
