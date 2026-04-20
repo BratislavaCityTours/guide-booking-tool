@@ -981,7 +981,7 @@ async function renderGuides(){
 }
 
 function filterGuideSelect(){
-  const q = (document.getElementById('guide-search').value||'').toLowerCase();
+  const q = (document.getElementById('guide-search').value||'').toLowerCase().trim();
   const sel = document.getElementById('f-guide');
   const cur = sel.value;
   const filtered = q ? guidesCache.filter(g=>
@@ -991,17 +991,21 @@ function filterGuideSelect(){
     `<option value="${g.id}" data-email="${esc(g.email||'')}" data-name="${esc(g.name)}" data-phone="${esc(g.phone||'')}">${esc(g.name)}${g.lang?' ('+g.lang+')':''}</option>`
   ).join('');
   if(cur) sel.value = cur;
+  // Auto-select if only one result
+  if(filtered.length===1 && q){
+    sel.value = filtered[0].id;
+    onGuide();
+  }
 }
 
 async function refreshGuides(){
   if(!SB)return;
   const{data}=await SB.from('guides').select('*').order('name');
   guidesCache=data||[];
-  const sel=document.getElementById('f-guide'),cur=sel.value;
-  sel.innerHTML='<option value="">— Vyber guide —</option>'+guidesCache.map(g=>
-    `<option value="${g.id}" data-email="${esc(g.email||'')}" data-name="${esc(g.name)}" data-phone="${esc(g.phone||'')}">${esc(g.name)}${g.lang?' ('+g.lang+')':''}</option>`
-  ).join('');
-  if(cur)sel.value=cur;
+  const cur=document.getElementById('f-guide').value;
+  // Apply current search filter
+  filterGuideSelect();
+  if(cur)document.getElementById('f-guide').value=cur;
   onGuide();
 }
 
