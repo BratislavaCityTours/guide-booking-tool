@@ -842,6 +842,7 @@ async function initApp() {
 
 function showSetup(){document.getElementById('setup').style.display='flex';document.getElementById('app').style.display='none';}
 function showApp(){
+  document.getElementById('pwd-screen').style.display='none';
   document.getElementById('setup').style.display='none';
   document.getElementById('app').style.display='flex';
   setSvc('walk1');
@@ -853,17 +854,30 @@ function showApp(){
 async function bootApp(){
   await loadSB();
   const url=localStorage.getItem('sb_url'), key=localStorage.getItem('sb_key');
-  if(!url||!key){ showSetup(); return; }
-  SB = window.supabase.createClient(url, key);
+
+  // No DB config yet — show setup screen
+  if(!url||!key){
+    document.getElementById('pwd-screen').style.display='none';
+    document.getElementById('setup').style.display='flex';
+    return;
+  }
+
+  // Create SB only once
+  if(!SB) SB = window.supabase.createClient(url, key);
 
   // Check if already logged in
-  const { data: { session } } = await SB.auth.getSession();
-  if(session){
-    document.getElementById('pwd-screen').style.display='none';
-    showApp();
-  } else {
+  try {
+    const { data: { session } } = await SB.auth.getSession();
+    if(session){
+      showApp();
+    } else {
+      document.getElementById('setup').style.display='none';
+      document.getElementById('pwd-screen').style.display='flex';
+      setTimeout(()=>{ const el=document.getElementById('login-email'); if(el)el.focus(); }, 100);
+    }
+  } catch(e){
+    document.getElementById('setup').style.display='none';
     document.getElementById('pwd-screen').style.display='flex';
-    setTimeout(()=>document.getElementById('login-email').focus(), 100);
   }
 }
 
@@ -871,8 +885,10 @@ async function saveConfig(){
   const url=document.getElementById('cfg-url').value.trim().replace(/\/$/,'');
   const key=document.getElementById('cfg-key').value.trim();
   if(!url||!key){alert('Zadaj obe polia.');return;}
-  localStorage.setItem('sb_url',url);localStorage.setItem('sb_key',key);
-  await initApp();
+  localStorage.setItem('sb_url',url);
+  localStorage.setItem('sb_key',key);
+  SB = null; // Reset so it gets recreated
+  await bootApp();
 }
 function resetConfig(){if(!confirm('Zmeniť pripojenie?'))return;localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');SB=null;window.location.reload();}
 function logout(){localStorage.removeItem('bct_auth');window.location.reload();}
