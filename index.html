@@ -547,10 +547,38 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
     <!-- HISTORY -->
     <div class="pg" id="pg-history">
       <div class="ph"><h1>História</h1><p>Všetky emaily od celého tímu. Klikni <strong>Zmena</strong> pre úpravu.</p></div>
-      <div style="margin-bottom:16px;position:relative;">
-        <input type="text" id="h-search" placeholder="🔍  Hľadaj podľa mena klienta, vouchera, guide alebo dátumu..." oninput="filterHistory()" style="padding-left:14px;font-size:14px;">
-        <button onclick="document.getElementById('h-search').value='';filterHistory();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);">×</button>
+
+      <!-- Search and filters -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+        <div style="position:relative;">
+          <input type="text" id="h-search" placeholder="🔍  Hľadaj podľa mena klienta, vouchera, guide..." oninput="filterHistory()" style="padding-left:14px;font-size:14px;">
+          <button onclick="document.getElementById('h-search').value='';filterHistory();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);">×</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <label style="margin:0;font-size:12px;white-space:nowrap;">Od:</label>
+            <input type="date" id="h-date-from" onchange="filterHistory()" style="width:150px;font-size:13px;padding:6px 10px;">
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <label style="margin:0;font-size:12px;white-space:nowrap;">Do:</label>
+            <input type="date" id="h-date-to" onchange="filterHistory()" style="width:150px;font-size:13px;padding:6px 10px;">
+          </div>
+          <select id="h-svc-filter" onchange="filterHistory()" style="font-size:13px;padding:6px 10px;width:auto;">
+            <option value="">Všetky typy</option>
+            <option value="walk1">1 hod</option>
+            <option value="walk15">1,5 hod</option>
+            <option value="walk2">2 hod</option>
+            <option value="walk3">3 hod</option>
+            <option value="gct">GCT</option>
+            <option value="combo">GCT + 1 hod</option>
+            <option value="gct-auto">GCT auto</option>
+            <option value="wine">Vinny okruh</option>
+            <option value="devin">GCT + Devin</option>
+          </select>
+          <button class="btn btn-g" onclick="clearHistoryFilters()" style="font-size:12px;padding:6px 12px;">Zmazat filtre</button>
+        </div>
       </div>
+
       <div id="h-count" style="font-size:12px;color:var(--text3);margin-bottom:10px;"></div>
       <div id="hlist"><div class="load">Načítavam...</div></div>
     </div>
@@ -1633,39 +1661,62 @@ async function renderHistory(){
   filterHistory();
 }
 
+function clearHistoryFilters(){
+  document.getElementById('h-search').value='';
+  document.getElementById('h-date-from').value='';
+  document.getElementById('h-date-to').value='';
+  document.getElementById('h-svc-filter').value='';
+  filterHistory();
+}
+
 function filterHistory(){
   const el=document.getElementById('hlist');
   const q=(document.getElementById('h-search').value||'').toLowerCase().trim();
+  const dateFrom=document.getElementById('h-date-from').value;
+  const dateTo=document.getElementById('h-date-to').value;
+  const svcFilter=document.getElementById('h-svc-filter').value;
   const data=historyCache;
 
   if(!data.length){el.innerHTML='<div class="empty"><p>História je prázdna.</p></div>';document.getElementById('h-count').textContent='';return;}
 
-  const filtered = q ? data.filter(h=>{
-    // Search in client names
-    let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
-    const clientStr = cn.join(' ').toLowerCase();
-    // Search in full text (contains vouchers)
-    const txt = (h.text||'').toLowerCase();
-    const guide = (h.guide_name||'').toLowerCase();
-    const date = h.date ? fmtDate(h.date).toLowerCase() : '';
-    const sender = (h.sender_name||'').toLowerCase();
-    return clientStr.includes(q) || txt.includes(q) || guide.includes(q) || date.includes(q) || sender.includes(q);
-  }) : data;
+  const filtered = data.filter(h=>{
+    // Text search
+    if(q){
+      let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
+      const clientStr=cn.join(' ').toLowerCase();
+      const txt=(h.text||'').toLowerCase();
+      const guide=(h.guide_name||'').toLowerCase();
+      const date=h.date?fmtDate(h.date).toLowerCase():'';
+      const sender=(h.sender_name||'').toLowerCase();
+      if(!clientStr.includes(q)&&!txt.includes(q)&&!guide.includes(q)&&!date.includes(q)&&!sender.includes(q)) return false;
+    }
+    // Date from filter
+    if(dateFrom && h.date && h.date < dateFrom) return false;
+    // Date to filter
+    if(dateTo && h.date && h.date > dateTo) return false;
+    // Service type filter
+    if(svcFilter && h.service_type !== svcFilter) return false;
+    return true;
+  });
 
   const count=document.getElementById('h-count');
-  if(q) count.textContent = 'Nájdených: '+filtered.length+' z '+data.length;
-  else count.textContent = 'Celkom: '+data.length+' záznamov';
+  const hasFilter = q||dateFrom||dateTo||svcFilter;
+  count.textContent = hasFilter
+    ? 'Nájdených: '+filtered.length+' z '+data.length
+    : 'Celkom: '+data.length+' záznamov';
 
-  if(!filtered.length){el.innerHTML='<div class="empty"><p>Žiadne výsledky pre "'+esc(q)+'".</p></div>';return;}
+  if(!filtered.length){
+    el.innerHTML='<div class="empty"><p>Žiadne výsledky pre zadané filtre.</p></div>';
+    return;
+  }
 
   el.innerHTML=filtered.map(h=>{
     let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
     const stMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'GCT',combo:'Combo','gct-auto':'GCT Auto',wine:'Vinny okruh',devin:'GCT+Devin'};
     const st=stMap[h.service_type]||'Walking';
     const henc=encodeURIComponent(JSON.stringify(h));
-    // Highlight matching text
-    const clientDisplay = cn.map(n=>q&&n.toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(n)+'</mark>':esc(n)).join(', ')||'—';
-    const guideDisplay = q&&(h.guide_name||'').toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(h.guide_name||'—')+'</mark>':esc(h.guide_name||'—');
+    const clientDisplay=cn.map(n=>q&&n.toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(n)+'</mark>':esc(n)).join(', ')||'—';
+    const guideDisplay=q&&(h.guide_name||'').toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(h.guide_name||'—')+'</mark>':esc(h.guide_name||'—');
     return `<div class="hi">
       <div class="hd">${h.date?fmtDate(h.date):'—'}<br>${new Date(h.created_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:var(--text3);font-size:10px;">${esc(h.sender_name||'')}</span></div>
       <div class="hinfo">
