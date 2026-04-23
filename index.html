@@ -868,6 +868,33 @@ function showApp(){
   refreshGuides();
   addClient();
   SB.from('settings').select('*').then(({data})=>{ if(data) applyPricesToApp(data); });
+
+  // Monitor auth state changes
+  SB.auth.onAuthStateChange((event, session)=>{
+    if(event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')){
+      // Session expired — show notification and redirect to login
+      showSessionExpired();
+    }
+    if(event === 'TOKEN_REFRESHED'){
+      console.log('Session refreshed automatically');
+    }
+  });
+
+  // Check session every 5 minutes as backup
+  setInterval(async ()=>{
+    const { data: { session } } = await SB.auth.getSession();
+    if(!session){ showSessionExpired(); }
+  }, 5 * 60 * 1000);
+}
+
+function showSessionExpired(){
+  // Only show once
+  if(document.getElementById('session-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'session-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;padding:14px 20px;text-align:center;font-size:14px;font-weight:500;';
+  banner.innerHTML = '⚠️ Prihlásenie vypršalo. <button onclick="window.location.reload()" style="background:#fff;color:#c0392b;border:none;padding:6px 14px;border-radius:6px;font-weight:600;cursor:pointer;margin-left:10px;">Prihlásiť sa znova</button>';
+  document.body.prepend(banner);
 }
 
 async function bootApp(){
