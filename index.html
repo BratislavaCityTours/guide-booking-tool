@@ -189,7 +189,10 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
     <label>Email</label>
     <input type="email" id="login-email" placeholder="meno@e-travel.sk" style="margin-bottom:12px;">
     <label>Heslo</label>
-    <input type="password" id="login-password" placeholder="Heslo..." style="margin-bottom:18px;" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="password" id="login-password" placeholder="Heslo..." style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')doLogin()">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:0;margin-bottom:18px;font-size:13px;cursor:pointer;">
+      <input type="checkbox" id="remember-me" style="width:auto;margin:0;"> Zapamätať prihlásenie (30 dní)
+    </label>
     <button class="btn btn-p btn-fw" style="padding:11px;" onclick="doLogin()">Prihlásiť sa</button>
     <p id="login-error" style="margin-top:10px;font-size:13px;color:var(--danger);display:none;">Nesprávny email alebo heslo.</p>
     <p id="login-loading" style="margin-top:10px;font-size:13px;color:var(--text2);display:none;">Prihlasovanie...</p>
@@ -459,7 +462,11 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
       <div class="card">
         <div class="ct">Detaily túry</div>
         <div class="g2">
-          <div><label>Dátum</label><input type="date" id="f-date"></div>
+          <div>
+            <label>Dátum</label>
+            <input type="date" id="f-date" onchange="updateDateDisplay()">
+            <div id="date-display" style="font-size:12px;color:var(--accent);margin-top:4px;font-weight:600;min-height:16px;"></div>
+          </div>
           <div><label>Trvanie</label><input type="text" id="f-dur" value="1 hod" readonly style="background:var(--surface2);"></div>
         </div>
         <label>Čas začiatku &amp; miesto stretnutia</label>
@@ -803,20 +810,30 @@ function getSvcLang() {
 async function doLogin(){
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
+  const remember = document.getElementById('remember-me').checked;
   if(!email||!password){ document.getElementById('login-error').style.display='block'; return; }
 
   document.getElementById('login-error').style.display='none';
   document.getElementById('login-loading').style.display='block';
 
   try {
+    // Set session expiry based on remember me
+    if(remember){
+      // Store preference
+      localStorage.setItem('bct_remember','1');
+    } else {
+      localStorage.removeItem('bct_remember');
+    }
+
     const {data, error} = await SB.auth.signInWithPassword({email, password});
     document.getElementById('login-loading').style.display='none';
     if(error){ document.getElementById('login-error').style.display='block'; return; }
-    // Logged in
-    document.getElementById('pwd-screen').style.display='none';
-    // Update sidebar with user name
-    const userName = email.split('@')[0];
-    document.getElementById('sb-sender').textContent = userName;
+
+    // If remember me, persist session
+    if(remember){
+      localStorage.setItem('bct_session', JSON.stringify(data.session));
+    }
+
     showApp();
   } catch(e){
     document.getElementById('login-loading').style.display='none';
@@ -826,6 +843,8 @@ async function doLogin(){
 
 async function logout(){
   await SB.auth.signOut();
+  localStorage.removeItem('bct_session');
+  localStorage.removeItem('bct_remember');
   window.location.reload();
 }
 
@@ -863,9 +882,24 @@ async function bootApp(){
   }
 
   // Create SB only once
-  if(!SB) SB = window.supabase.createClient(url, key);
+  if(!SB) SB = window.supabase.createClient(url, key, {
+    auth: { persistSession: true, autoRefreshToken: true, storageKey: 'bct-session' }
+  });
 
-  // Check if already logged in
+  // Try to restore saved session if remember me was checked
+  const savedSession = localStorage.getItem('bct_session');
+  if(savedSession){
+    try {
+      const session = JSON.parse(savedSession);
+      const { error } = await SB.auth.setSession(session);
+      if(!error){
+        showApp();
+        return;
+      }
+    } catch(e){ localStorage.removeItem('bct_session'); }
+  }
+
+  // Check if already logged in via Supabase session
   try {
     const { data: { session } } = await SB.auth.getSession();
     if(session){
@@ -873,6 +907,10 @@ async function bootApp(){
     } else {
       document.getElementById('setup').style.display='none';
       document.getElementById('pwd-screen').style.display='flex';
+      // Pre-check remember me if previously used
+      if(localStorage.getItem('bct_remember')==='1'){
+        document.getElementById('remember-me').checked = true;
+      }
       setTimeout(()=>{ const el=document.getElementById('login-email'); if(el)el.focus(); }, 100);
     }
   } catch(e){
@@ -934,15 +972,15 @@ function setSvc(type){
   document.getElementById('gct-extra').style.display=(type==='gct'||type==='gct-auto')?'block':'none';
   document.getElementById('combo-extra').style.display=type==='combo'?'block':'none';
   document.getElementById('gct-end-wrap').style.display=(type==='gct'||type==='combo'||type==='gct-auto')?'block':'none';
-  if(type==='gct') updateGCT();
+  if(type==='gct') {updateGCT(); cIds.forEach(id=>renderCB(id));}
   if(type==='combo'){updateCombo(); cIds.forEach(id=>renderCB(id));}
   if(type==='walk1'){updateWalkPrice(); cIds.forEach(id=>renderCB(id));}
-  if(type==='walk15') updateFixedWalkPrice('walk15');
-  if(type==='walk2') updateFixedWalkPrice('walk2');
-  if(type==='walk3') updateFixedWalkPrice('walk3');
-  if(type==='gct-auto') updateGCTAutoPrice();
-  if(type==='wine') updateWinePrice();
-  if(type==='devin') updateDevinPrice();
+  if(type==='walk15'){updateFixedWalkPrice('walk15'); cIds.forEach(id=>renderCB(id));}
+  if(type==='walk2'){updateFixedWalkPrice('walk2'); cIds.forEach(id=>renderCB(id));}
+  if(type==='walk3'){updateFixedWalkPrice('walk3'); cIds.forEach(id=>renderCB(id));}
+  if(type==='gct-auto'){updateGCTAutoPrice(); cIds.forEach(id=>renderCB(id));}
+  if(type==='wine'){updateWinePrice(); cIds.forEach(id=>renderCB(id));}
+  if(type==='devin'){updateDevinPrice(); cIds.forEach(id=>renderCB(id));}
 }
 
 // ── Guide modal ───────────────────────────────────────────
@@ -1058,7 +1096,7 @@ function setTourType(id,type){
 function renderCB(id){
   const d=cData[id],num=cIds.indexOf(id)+1,gone=d.cancelled,pax=parseInt(d.pax)||1;
   const tourType=d.tour_type||'walk';
-  const isCombo=svc==='combo'||svc==='gct-auto';
+  const isCombo=svc==='combo'||svc==='gct-auto'||svc==='gct';
   const div=document.createElement('div');
   div.className='cb'+(gone?' gone':'');div.id='cb'+id;
 
@@ -1119,6 +1157,11 @@ function renum(){cIds.forEach((id,i)=>{const b=document.getElementById('cbn'+id)
 let amendId=null,stornoId=null,lastTxt='',lastSubj='';
 function gv(id){const e=document.getElementById(id);return e?e.value.trim():'';}
 function fmtDate(d){if(!d)return'';const[y,m,day]=d.split('-');return`${day}.${m}.${y}`;}
+function updateDateDisplay(){
+  const d = gv('f-date');
+  const el = document.getElementById('date-display');
+  if(el) el.textContent = d ? '📅 ' + fmtDate(d) : '';
+}
 
 function buildSubject(isAmend){
   const date=fmtDate(gv('f-date'));
@@ -1343,8 +1386,15 @@ async function saveHist(){
     is_amendment:!!amendId,
     created_at:new Date().toISOString()
   };
-  if(amendId){await SB.from('bookings').update(row).eq('id',amendId);alert('Zmena ulozena!');}
-  else{await SB.from('bookings').insert(row);alert('Ulozene do historie!');}
+  if(amendId){
+    const{error}=await SB.from('bookings').update(row).eq('id',amendId);
+    if(error){alert('Chyba ukladania: '+error.message);return;}
+    alert('Zmena ulozena!');
+  } else {
+    const{error}=await SB.from('bookings').insert(row);
+    if(error){alert('Chyba ukladania: '+error.message);return;}
+    alert('Ulozene do historie!');
+  }
 }
 
 function resetForm(){
@@ -1378,38 +1428,7 @@ async function openCopyNew(h){
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
-  if(h.date)document.getElementById('f-date').value=h.date;
-  if(h.meeting)document.getElementById('f-meet').value=h.meeting;
-  if(h.end_guide)document.getElementById('f-end-guide').value=h.end_guide||'';
-  if(h.duration)document.getElementById('f-dur').value=h.duration;
-  if(h.payment)document.getElementById('f-pay').value=h.payment;
-  if(h.car_meeting){const el=document.getElementById('f-car')||document.getElementById('f-car2');if(el)el.value=h.car_meeting;}
-  if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
-  if(h.end2)document.getElementById('f-end2').value=h.end2||'';
-  if(h.sender_key){document.getElementById('f-sender').value=h.sender_key;onSender();}
-  if(h.service_type)setSvc(h.service_type);
-  if(h.lang){
-    const lsel=document.getElementById(h.service_type==='walk1'?'w1-lang':h.service_type==='walk15'?'w15-lang':h.service_type==='walk2'?'w2-lang':h.service_type==='walk3'?'w3-lang':h.service_type==='gct'?'gct-lang':h.service_type==='combo'?'combo-lang':h.service_type==='wine'?'wine-lang':h.service_type==='devin'?'devin-lang':'w1-lang');
-    if(lsel)lsel.value=h.lang;
-  }
-  refreshGuides().then(()=>{if(h.guide_id){document.getElementById('f-guide').value=h.guide_id;onGuide();}});
-  let cl=[];try{cl=JSON.parse(h.clients||'[]');}catch{}
-  if(cl.length)cl.forEach(c=>addClient(c));else addClient();
-  document.getElementById('abanner').style.display='none';
-  document.getElementById('c-title').textContent='Nova objednavka (kopirovat)';
-  document.getElementById('c-sub').textContent='Detaily su vyplnene z povodnej objednavky. Zmen guide a odosli.';
-  document.getElementById('gen-lbl').textContent='Vygenerovat email';
-  nav('compose');
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-function openAmend(id,h){
-  cIds=[];cCnt=0;cData={};lastTxt='';lastSubj='';
-  amendId=id; stornoId=null;
-  document.getElementById('clist').innerHTML='';
-  document.getElementById('out').style.display='none';
-  document.getElementById('out-acts').style.display='none';
-  if(h.date)document.getElementById('f-date').value=h.date;
+  if(h.date){document.getElementById('f-date').value=h.date;updateDateDisplay();}
   if(h.meeting)document.getElementById('f-meet').value=h.meeting;
   if(h.end_guide)document.getElementById('f-end-guide').value=h.end_guide||'';
   if(h.duration)document.getElementById('f-dur').value=h.duration;
