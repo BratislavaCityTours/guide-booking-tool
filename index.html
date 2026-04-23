@@ -876,12 +876,12 @@ function showApp(){
       showSessionExpired();
     }
     if(event === 'TOKEN_REFRESHED'){
-      console.log('Session refreshed automatically');
+      // session refreshed
     }
   });
 
   // Check session every 5 minutes as backup
-  setInterval(async ()=>{
+  window._sessionInterval = setInterval(async ()=>{
     const { data: { session } } = await SB.auth.getSession();
     if(!session){ showSessionExpired(); }
   }, 5 * 60 * 1000);
@@ -956,7 +956,6 @@ async function saveConfig(){
   await bootApp();
 }
 function resetConfig(){if(!confirm('Zmeniť pripojenie?'))return;localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');SB=null;window.location.reload();}
-function logout(){localStorage.removeItem('bct_auth');window.location.reload();}
 
 // ── Navigation ────────────────────────────────────────────
 function mobileNav(page){
@@ -1027,15 +1026,19 @@ async function saveGuide(){
   const name=document.getElementById('gm-name').value.trim();
   if(!name){alert('Zadaj meno.');return;}
   const d={name,email:document.getElementById('gm-email').value.trim(),phone:document.getElementById('gm-phone').value.trim(),lang:document.getElementById('gm-lang').value.trim()};
-  if(editGId)await SB.from('guides').update(d).eq('id',editGId);
-  else await SB.from('guides').insert(d);
-  closeGM();renderGuides();refreshGuides();
+  try {
+    if(editGId)await SB.from('guides').update(d).eq('id',editGId);
+    else await SB.from('guides').insert(d);
+    closeGM();renderGuides();refreshGuides();
+  } catch(e){ alert('Chyba ukladania guide: '+e.message); }
 }
 
 async function delGuide(id){
-  if(!confirm('Zmazať guide?'))return;
-  await SB.from('guides').delete().eq('id',id);
-  renderGuides();refreshGuides();
+  if(!confirm('Zmazat guide?'))return;
+  try{
+    await SB.from('guides').delete().eq('id',id);
+    renderGuides();refreshGuides();
+  }catch(e){alert('Chyba mazania: '+e.message);}
 }
 
 function ini(n){return n.split(' ').filter(Boolean).map(w=>w[0]).join('').toUpperCase().slice(0,2);}
@@ -1442,14 +1445,46 @@ function resetForm(){
   onGuide();setSvc('walk1');addClient();
 }
 
+function openAmend(id, h){
+  cIds=[];cCnt=0;cData={};lastTxt='';lastSubj='';
+  amendId=id; stornoId=null;
+  document.getElementById('clist').innerHTML='';
+  document.getElementById('out').style.display='none';
+  document.getElementById('out-acts').style.display='none';
+  if(h.date){document.getElementById('f-date').value=h.date;updateDateDisplay();}
+  if(h.meeting)document.getElementById('f-meet').value=h.meeting;
+  if(h.end_guide)document.getElementById('f-end-guide').value=h.end_guide||'';
+  if(h.duration)document.getElementById('f-dur').value=h.duration;
+  if(h.payment)document.getElementById('f-pay').value=h.payment;
+  if(h.car_meeting){const el=document.getElementById('f-car')||document.getElementById('f-car2');if(el)el.value=h.car_meeting;}
+  if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
+  if(h.end2)document.getElementById('f-end2').value=h.end2||'';
+  if(h.sender_key){document.getElementById('f-sender').value=h.sender_key;onSender();}
+  if(h.service_type)setSvc(h.service_type);
+  if(h.lang){
+    const lselId={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
+    const lsel=document.getElementById(lselId[h.service_type]||'w1-lang');
+    if(lsel)lsel.value=h.lang;
+  }
+  refreshGuides().then(()=>{if(h.guide_id){document.getElementById('f-guide').value=h.guide_id;onGuide();}});
+  let cl=[];try{cl=JSON.parse(h.clients||'[]');}catch{}
+  if(cl.length)cl.forEach(c=>addClient(c));else addClient();
+  document.getElementById('abanner').style.display='flex';
+  document.getElementById('c-title').textContent='Zmena objednavky';
+  document.getElementById('c-sub').textContent='Upravujes objednavku z '+(h.date?fmtDate(h.date):'—')+'.';
+  document.getElementById('gen-lbl').textContent='Vygenerovat email o zmene';
+  nav('compose');window.scrollTo({top:0,behavior:'smooth'});
+}
+
 async function openCopyNew(h){
   if(!confirm('Skopirovat ako novu objednavku? Stara objednavka bude vymazana z historie.')) return;
 
   // Delete old booking
-  await SB.from('bookings').delete().eq('id', h.id);
-  historyCache = historyCache.filter(x => x.id !== h.id);
+  try {
+    await SB.from('bookings').delete().eq('id', h.id);
+    historyCache = historyCache.filter(x => x.id !== h.id);
+  } catch(e){ console.error('Delete error:', e); }
 
-  // Same as openAmend but without setting amendId — so it generates as new booking
   cIds=[];cCnt=0;cData={};lastTxt='';lastSubj='';
   amendId=null; stornoId=null;
   document.getElementById('clist').innerHTML='';
@@ -1460,27 +1495,23 @@ async function openCopyNew(h){
   if(h.end_guide)document.getElementById('f-end-guide').value=h.end_guide||'';
   if(h.duration)document.getElementById('f-dur').value=h.duration;
   if(h.payment)document.getElementById('f-pay').value=h.payment;
-  if(h.car_meeting){
-    const el=document.getElementById('f-car')||document.getElementById('f-car2');
-    if(el)el.value=h.car_meeting;
-  }
+  if(h.car_meeting){const el=document.getElementById('f-car')||document.getElementById('f-car2');if(el)el.value=h.car_meeting;}
   if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
   if(h.end2)document.getElementById('f-end2').value=h.end2||'';
-  if(h.sender_key){
-    document.getElementById('f-sender').value=h.sender_key;onSender();
-  }
+  if(h.sender_key){document.getElementById('f-sender').value=h.sender_key;onSender();}
   if(h.service_type)setSvc(h.service_type);
   if(h.lang){
-    const lsel=document.getElementById(h.service_type==='walk'?'w-lang':h.service_type==='gct'?'gct-lang':'combo-lang');
+    const lselId={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
+    const lsel=document.getElementById(lselId[h.service_type]||'w1-lang');
     if(lsel)lsel.value=h.lang;
   }
   refreshGuides().then(()=>{if(h.guide_id){document.getElementById('f-guide').value=h.guide_id;onGuide();}});
   let cl=[];try{cl=JSON.parse(h.clients||'[]');}catch{}
   if(cl.length)cl.forEach(c=>addClient(c));else addClient();
-  document.getElementById('abanner').style.display='flex';
-  document.getElementById('c-title').textContent='Zmena objednávky';
-  document.getElementById('c-sub').textContent='Upravuješ objednávku z '+(h.date?fmtDate(h.date):'—')+'.';
-  document.getElementById('gen-lbl').textContent='Vygenerovať email o zmene';
+  document.getElementById('abanner').style.display='none';
+  document.getElementById('c-title').textContent='Nova objednavka (kopirovat)';
+  document.getElementById('c-sub').textContent='Detaily su vyplnene z povodnej objednavky. Zmen guide a odosli.';
+  document.getElementById('gen-lbl').textContent='Vygenerovat email';
   nav('compose');window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1653,10 +1684,12 @@ function filterHistory(){
 
 async function deleteBooking(id){
   if(!confirm('Zmazat tuto objednavku z historie?')) return;
-  const{error}=await SB.from('bookings').delete().eq('id',id);
-  if(error){alert('Chyba: '+error.message);return;}
-  historyCache=historyCache.filter(h=>h.id!==id);
-  filterHistory();
+  try{
+    const{error}=await SB.from('bookings').delete().eq('id',id);
+    if(error){alert('Chyba: '+error.message);return;}
+    historyCache=historyCache.filter(h=>h.id!==id);
+    filterHistory();
+  }catch(e){alert('Chyba mazania: '+e.message);}
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
