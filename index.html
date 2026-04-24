@@ -1651,14 +1651,21 @@ function exitAmend(){
 
 // ── History ───────────────────────────────────────────────
 let historyCache = [];
+let historyPage = 1;
+const HISTORY_PER_PAGE = 50;
 
 async function renderHistory(){
   const el=document.getElementById('hlist');
   el.innerHTML='<div class="load">Načítavam...</div>';
-  const{data,error}=await SB.from('bookings').select('*').order('created_at',{ascending:false}).limit(300);
-  if(error||!data){el.innerHTML='<div class="empty"><p>Chyba načítania.</p></div>';return;}
-  historyCache = data;
-  filterHistory();
+  try {
+    const{data,error}=await SB.from('bookings').select('*').order('created_at',{ascending:false}).limit(1000);
+    if(error||!data){el.innerHTML='<div class="empty"><p>Chyba načítania.</p></div>';return;}
+    historyCache=data;
+    historyPage=1;
+    filterHistory();
+  } catch(e){
+    el.innerHTML='<div class="empty"><p>Chyba: '+e.message+'</p></div>';
+  }
 }
 
 function clearHistoryFilters(){
@@ -1666,6 +1673,7 @@ function clearHistoryFilters(){
   document.getElementById('h-date-from').value='';
   document.getElementById('h-date-to').value='';
   document.getElementById('h-svc-filter').value='';
+  historyPage=1;
   filterHistory();
 }
 
@@ -1677,10 +1685,13 @@ function filterHistory(){
   const svcFilter=document.getElementById('h-svc-filter').value;
   const data=historyCache;
 
-  if(!data.length){el.innerHTML='<div class="empty"><p>História je prázdna.</p></div>';document.getElementById('h-count').textContent='';return;}
+  if(!data.length){
+    el.innerHTML='<div class="empty"><p>História je prázdna.</p></div>';
+    document.getElementById('h-count').textContent='';
+    return;
+  }
 
-  const filtered = data.filter(h=>{
-    // Text search
+  const filtered=data.filter(h=>{
     if(q){
       let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
       const clientStr=cn.join(' ').toLowerCase();
@@ -1690,27 +1701,32 @@ function filterHistory(){
       const sender=(h.sender_name||'').toLowerCase();
       if(!clientStr.includes(q)&&!txt.includes(q)&&!guide.includes(q)&&!date.includes(q)&&!sender.includes(q)) return false;
     }
-    // Date from filter
-    if(dateFrom && h.date && h.date < dateFrom) return false;
-    // Date to filter
-    if(dateTo && h.date && h.date > dateTo) return false;
-    // Service type filter
-    if(svcFilter && h.service_type !== svcFilter) return false;
+    if(dateFrom&&h.date&&h.date<dateFrom) return false;
+    if(dateTo&&h.date&&h.date>dateTo) return false;
+    if(svcFilter&&h.service_type!==svcFilter) return false;
     return true;
   });
 
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length/HISTORY_PER_PAGE));
+  if(historyPage > totalPages) historyPage = totalPages;
+  const start = (historyPage-1)*HISTORY_PER_PAGE;
+  const pageItems = filtered.slice(start, start+HISTORY_PER_PAGE);
+
+  // Count display
+  const hasFilter=q||dateFrom||dateTo||svcFilter;
   const count=document.getElementById('h-count');
-  const hasFilter = q||dateFrom||dateTo||svcFilter;
   count.textContent = hasFilter
-    ? 'Nájdených: '+filtered.length+' z '+data.length
-    : 'Celkom: '+data.length+' záznamov';
+    ? `Nájdených: ${filtered.length} z ${data.length} · Strana ${historyPage} z ${totalPages}`
+    : `Celkom: ${data.length} záznamov · Strana ${historyPage} z ${totalPages}`;
 
   if(!filtered.length){
     el.innerHTML='<div class="empty"><p>Žiadne výsledky pre zadané filtre.</p></div>';
     return;
   }
 
-  el.innerHTML=filtered.map(h=>{
+  // Render items
+  const itemsHtml = pageItems.map(h=>{
     let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
     const stMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'GCT',combo:'Combo','gct-auto':'GCT Auto',wine:'Vinny okruh',devin:'GCT+Devin'};
     const st=stMap[h.service_type]||'Walking';
@@ -1731,6 +1747,51 @@ function filterHistory(){
       </div>
     </div>`;
   }).join('');
+
+  // Pagination controls
+  const paginationHtml = totalPages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;flex-wrap:wrap;">
+      <button class="btn btn-g" onclick="goToPage(1)" ${historyPage===1?'disabled':''}>«</button>
+      <button class="btn btn-g" onclick="goToPage(${historyPage-1})" ${historyPage===1?'disabled':''}>‹ Pred.</button>
+      ${Array.from({length:totalPages},(_,i)=>i+1)
+        .filter(p=>p===1||p===totalPages||Math.abs(p-historyPage)<=2)
+        .reduce((acc,p,i,arr)=>{
+          if(i>0&&arr[i-1]!==p-1) acc.push('...');
+          acc.push(p);
+          return acc;
+        },[])
+        .map(p=>p==='...'
+          ? `<span style="padding:0 4px;color:var(--text3);">...</span>`
+          : `<button class="btn ${p===historyPage?'btn-p':'btn-g'}" onclick="goToPage(${p})" style="min-width:36px;">${p}</button>`
+        ).join('')}
+      <button class="btn btn-g" onclick="goToPage(${historyPage+1})" ${historyPage===totalPages?'disabled':''}>Ďalš. ›</button>
+      <button class="btn btn-g" onclick="goToPage(${totalPages})" ${historyPage===totalPages?'disabled':''}>»</button>
+    </div>` : '';
+
+  el.innerHTML = itemsHtml + paginationHtml;
+}
+
+function goToPage(page){
+  const totalPages=Math.ceil(historyCache.filter(h=>{
+    // Apply same filters
+    const q=(document.getElementById('h-search').value||'').toLowerCase().trim();
+    const dateFrom=document.getElementById('h-date-from').value;
+    const dateTo=document.getElementById('h-date-to').value;
+    const svcFilter=document.getElementById('h-svc-filter').value;
+    if(q){
+      let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
+      const all=[cn.join(' '),(h.text||''),(h.guide_name||''),(h.date?fmtDate(h.date):''),(h.sender_name||'')].join(' ').toLowerCase();
+      if(!all.includes(q)) return false;
+    }
+    if(dateFrom&&h.date&&h.date<dateFrom) return false;
+    if(dateTo&&h.date&&h.date>dateTo) return false;
+    if(svcFilter&&h.service_type!==svcFilter) return false;
+    return true;
+  }).length/HISTORY_PER_PAGE);
+  historyPage=Math.max(1,Math.min(page,totalPages));
+  filterHistory();
+  document.getElementById('pg-history').scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 async function deleteBooking(id){
