@@ -178,9 +178,21 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
 @media(min-width:601px){
   .mobile-nav{display:none;}
 }
+/* Realtime notifications */
+.notif-container{position:fixed;bottom:20px;right:20px;z-index:9998;display:flex;flex-direction:column;gap:8px;max-width:320px;}
+.notif{background:var(--text);color:#fff;border-radius:var(--rl);padding:14px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.25);display:flex;flex-direction:column;gap:6px;animation:slideIn 0.3s ease;}
+.notif-title{font-size:13px;font-weight:600;}
+.notif-body{font-size:12px;color:rgba(255,255,255,0.7);}
+.notif-actions{display:flex;gap:8px;margin-top:4px;}
+.notif-btn{background:rgba(255,255,255,0.15);border:none;color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--font);}
+.notif-btn:hover{background:rgba(255,255,255,0.25);}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@media(max-width:600px){.notif-container{bottom:80px;left:10px;right:10px;max-width:100%;}}
 </style>
 </head>
 <body>
+
+<div id="notif-container" class="notif-container"></div>
 
 <div class="setup" id="pwd-screen" style="display:none;">
   <div class="setup-box" style="width:400px;">
@@ -897,6 +909,36 @@ function showApp(){
   addClient();
   SB.from('settings').select('*').then(({data})=>{ if(data) applyPricesToApp(data); });
 
+  // Realtime notifications for new bookings
+  // Cleanup existing channel if any
+  if(window._realtimeChannel){ SB.removeChannel(window._realtimeChannel); }
+  window._realtimeChannel = SB.channel('bookings-changes')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'bookings'
+    }, payload => {
+      const h = payload.new;
+      // Don't notify about own bookings (saved in last 3 seconds)
+      if(window._lastSavedAt && Date.now() - window._lastSavedAt < 3000) return;
+      const senderName = h.sender_name || 'Kolega';
+      const guideName = h.guide_name || '—';
+      const date = h.date ? fmtDate(h.date) : '—';
+      let cn = []; try{cn=JSON.parse(h.client_names||'[]');}catch{}
+      const clientStr = cn.slice(0,2).join(', ') || '—';
+      showNotif(
+        '🔔 ' + senderName + ' pridala novu objednavku',
+        guideName + ' · ' + date + (clientStr!=='—'?' · '+clientStr:''),
+        ()=>{ nav('history'); renderHistory(); }
+      );
+      // Also refresh history cache silently
+      if(historyCache.length > 0){
+        historyCache.unshift(h);
+        // Don't re-render to avoid disrupting current view
+      }
+    })
+    .subscribe();
+
   // Monitor auth state changes
   SB.auth.onAuthStateChange((event, session)=>{
     if(event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')){
@@ -978,10 +1020,12 @@ async function saveConfig(){
   const url=document.getElementById('cfg-url').value.trim().replace(/\/$/,'');
   const key=document.getElementById('cfg-key').value.trim();
   if(!url||!key){alert('Zadaj obe polia.');return;}
-  localStorage.setItem('sb_url',url);
-  localStorage.setItem('sb_key',key);
-  SB = null; // Reset so it gets recreated
-  await bootApp();
+  try {
+    localStorage.setItem('sb_url',url);
+    localStorage.setItem('sb_key',key);
+    SB = null;
+    await bootApp();
+  } catch(e){ alert('Chyba pripojenia: '+e.message); }
 }
 function resetConfig(){if(!confirm('Zmeniť pripojenie?'))return;localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');SB=null;window.location.reload();}
 
@@ -1075,21 +1119,23 @@ let guidesCache=[];
 async function renderGuides(){
   const el=document.getElementById('glist');
   el.innerHTML='<div class="load">Načítavam...</div>';
-  const{data,error}=await SB.from('guides').select('*').order('name');
-  if(error){el.innerHTML='<div class="empty"><p>Chyba: '+error.message+'</p></div>';return;}
-  guidesCache=data||[];
-  if(!guidesCache.length){el.innerHTML='<div class="empty"><p>Žiadni guides. Pridaj prvého.</p></div>';return;}
-  el.innerHTML=guidesCache.map(g=>`
-    <div class="gc">
-      <div class="gt"><div class="gav">${ini(g.name)}</div>
-        <div class="gi"><div class="gn">${esc(g.name)}</div><div class="ge">${esc(g.email||'—')}</div>${g.lang?`<div class="gl">${esc(g.lang)}</div>`:''}</div>
-      </div>
-      ${g.phone?`<div style="font-size:13px;color:var(--text2);">${esc(g.phone)}</div>`:''}
-      <div class="ga">
-        <button class="btn btn-g" style="flex:1;" onclick='openGM("${g.id}",${JSON.stringify(g)})'>Upraviť</button>
-        <button class="btn btn-d" onclick="delGuide('${g.id}')">Zmazať</button>
-      </div>
-    </div>`).join('');
+  try {
+    const{data,error}=await SB.from('guides').select('*').order('name');
+    if(error){el.innerHTML='<div class="empty"><p>Chyba: '+error.message+'</p></div>';return;}
+    guidesCache=data||[];
+    if(!guidesCache.length){el.innerHTML='<div class="empty"><p>Žiadni guides. Pridaj prvého.</p></div>';return;}
+    el.innerHTML=guidesCache.map(g=>`
+      <div class="gc">
+        <div class="gt"><div class="gav">${ini(g.name)}</div>
+          <div class="gi"><div class="gn">${esc(g.name)}</div><div class="ge">${esc(g.email||'—')}</div>${g.lang?`<div class="gl">${esc(g.lang)}</div>`:''}</div>
+        </div>
+        ${g.phone?`<div style="font-size:13px;color:var(--text2);">${esc(g.phone)}</div>`:''}
+        <div class="ga">
+          <button class="btn btn-g" style="flex:1;" onclick='openGM("${g.id}",${JSON.stringify(g)})'>Upraviť</button>
+          <button class="btn btn-d" onclick="delGuide('${g.id}')">Zmazať</button>
+        </div>
+      </div>`).join('');
+  } catch(e){ el.innerHTML='<div class="empty"><p>Chyba: '+e.message+'</p></div>'; }
 }
 
 function filterGuideSelect(){
@@ -1112,13 +1158,14 @@ function filterGuideSelect(){
 
 async function refreshGuides(){
   if(!SB)return;
-  const{data}=await SB.from('guides').select('*').order('name');
-  guidesCache=data||[];
-  const cur=document.getElementById('f-guide').value;
-  // Apply current search filter
-  filterGuideSelect();
-  if(cur)document.getElementById('f-guide').value=cur;
-  onGuide();
+  try {
+    const{data}=await SB.from('guides').select('*').order('name');
+    guidesCache=data||[];
+    const cur=document.getElementById('f-guide').value;
+    filterGuideSelect();
+    if(cur)document.getElementById('f-guide').value=cur;
+    onGuide();
+  } catch(e){ console.error('refreshGuides error:',e.message); }
 }
 
 function onGuide(){
@@ -1444,15 +1491,18 @@ async function saveHist(){
     is_amendment:!!amendId,
     created_at:new Date().toISOString()
   };
-  if(amendId){
-    const{error}=await SB.from('bookings').update(row).eq('id',amendId);
-    if(error){alert('Chyba ukladania: '+error.message);return;}
-    alert('Zmena ulozena!');
-  } else {
-    const{error}=await SB.from('bookings').insert(row);
-    if(error){alert('Chyba ukladania: '+error.message);return;}
-    alert('Ulozene do historie!');
-  }
+  try {
+    if(amendId){
+      const{error}=await SB.from('bookings').update(row).eq('id',amendId);
+      if(error){alert('Chyba ukladania: '+error.message);return;}
+      alert('Zmena ulozena!');
+    } else {
+      window._lastSavedAt = Date.now();
+      const{error}=await SB.from('bookings').insert(row);
+      if(error){alert('Chyba ukladania: '+error.message);return;}
+      alert('Ulozene do historie!');
+    }
+  } catch(e){ alert('Chyba: '+e.message); }
 }
 
 function resetForm(){
@@ -1804,6 +1854,23 @@ async function deleteBooking(id){
   }catch(e){alert('Chyba mazania: '+e.message);}
 }
 
+function showNotif(title, body, onView){
+  const container = document.getElementById('notif-container');
+  const notif = document.createElement('div');
+  notif.className = 'notif';
+  notif.innerHTML = `
+    <div class="notif-title">${esc(title)}</div>
+    <div class="notif-body">${esc(body)}</div>
+    <div class="notif-actions">
+      <button class="notif-btn" id="notif-view-btn">Zobrazit</button>
+      <button class="notif-btn" onclick="this.closest('.notif').remove()">×</button>
+    </div>`;
+  notif.querySelector('#notif-view-btn').onclick = ()=>{ notif.remove(); if(onView)onView(); };
+  container.appendChild(notif);
+  // Auto-remove after 8 seconds
+  setTimeout(()=>{ if(notif.parentNode) notif.remove(); }, 8000);
+}
+
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 // ── Settings / Prices ─────────────────────────────────────
@@ -1820,17 +1887,18 @@ const PRICE_FIELDS = {
 };
 
 async function loadPrices(){
-  const {data,error} = await SB.from('settings').select('*');
-  if(error||!data) return;
-  data.forEach(row=>{
-    const fieldId = PRICE_FIELDS[row.key];
-    if(fieldId){
-      const el = document.getElementById(fieldId);
-      if(el) el.value = row.value;
-    }
-  });
-  // Also update in-memory pricing
-  applyPricesToApp(data);
+  try {
+    const {data,error} = await SB.from('settings').select('*');
+    if(error||!data) return;
+    data.forEach(row=>{
+      const fieldId = PRICE_FIELDS[row.key];
+      if(fieldId){
+        const el = document.getElementById(fieldId);
+        if(el) el.value = row.value;
+      }
+    });
+    applyPricesToApp(data);
+  } catch(e){ console.error('loadPrices error:',e.message); }
 }
 
 function applyPricesToApp(data){
@@ -1866,14 +1934,15 @@ async function savePrices(){
     const el = document.getElementById(fieldId);
     return { key, value: el ? String(el.value) : '0' };
   });
-  const {error} = await SB.from('settings').upsert(rows, {onConflict:'key'});
-  if(error){ alert('Chyba ukladania: '+error.message); return; }
-  // Apply to app immediately
-  const data = rows.map(r=>({key:r.key,value:r.value}));
-  applyPricesToApp(data);
-  const msg = document.getElementById('settings-msg');
-  msg.style.display='block';
-  setTimeout(()=>msg.style.display='none', 3000);
+  try {
+    const {error} = await SB.from('settings').upsert(rows, {onConflict:'key'});
+    if(error){ alert('Chyba ukladania: '+error.message); return; }
+    const data = rows.map(r=>({key:r.key,value:r.value}));
+    applyPricesToApp(data);
+    const msg = document.getElementById('settings-msg');
+    msg.style.display='block';
+    setTimeout(()=>msg.style.display='none', 3000);
+  } catch(e){ alert('Chyba: '+e.message); }
 }
 
 document.getElementById('gmodal').addEventListener('click',function(e){if(e.target===this)closeGM();});
