@@ -1594,41 +1594,23 @@ async function openCopyNew(h){
 }
 
 async function openStorno(id, h){
-  // Check if already storno
   if(h.is_storno){ alert('Tato objednavka je uz stornovana — neda sa stornovat znova.'); return; }
-
   if(!confirm('Vygenerovat storno celej objednavky?')) return;
 
-  // Set stornoId so saveHist won't create new record
   stornoId = id;
-
-  // Auto-fill sender from original booking
-  if(h.sender_key){
-    document.getElementById('f-sender').value = h.sender_key;
-    onSender();
-  }
+  if(h.sender_key){ document.getElementById('f-sender').value=h.sender_key; onSender(); }
 
   const sender = getSender();
   if(!sender){ alert('Vyber objednavatela v compose.'); nav('compose'); return; }
 
   const date = h.date ? fmtDate(h.date) : '-';
   const guideName = h.guide_name || 'Guide';
-  const guideEmail = (() => {
-    const g = guidesCache.find(x => x.id === h.guide_id);
-    return g ? g.email : '';
-  })();
+  const guideEmail = (guidesCache.find(x=>x.id===h.guide_id)||{}).email || '';
 
   let clients = [];
-  try { clients = JSON.parse(h.clients || '[]'); } catch {}
-  const activeClients = clients.filter(c => !c.cancelled);
+  try{ clients = JSON.parse(h.clients||'[]'); }catch{}
+  const activeClients = clients.filter(c=>!c.cancelled);
 
-  const lines = [];
-  lines.push('Dobry den,');
-  lines.push('');
-  lines.push('Zasielam Vam storno objednavky.');
-  lines.push('');
-  lines.push('---');
-  lines.push('');
   const svcDurMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod',devin:'5 hod'};
   const svcLblMap={
     walk1:'pesia prehliadka Bratislavy',walk15:'pesia prehliadka Bratislavy',
@@ -1637,13 +1619,21 @@ async function openStorno(id, h){
     'gct-auto':'Bratislava Grand City Tour vlastnym autom',
     wine:'Malokarpatsky vinny okruh',devin:'Bratislava Grand City Tour with Devin Castle'
   };
-  const svcLbl = svcLblMap[h.service_type] || 'pesia prehliadka Bratislavy';
+  const svcLbl = svcLblMap[h.service_type]||'pesia prehliadka Bratislavy';
+
+  const lines=[];
+  lines.push('Dobry den,');
+  lines.push('');
+  lines.push('Zasielam Vam storno objednavky.');
+  lines.push('');
+  lines.push('---');
+  lines.push('');
   lines.push('Servis: '+(svcDurMap[h.service_type]||'')+' '+svcLbl);
-  lines.push('Datum: ' + date);
-  if(h.meeting) lines.push('Cas: ' + h.meeting);
+  lines.push('Datum: '+date);
+  if(h.meeting) lines.push('Cas: '+h.meeting);
   lines.push('');
   lines.push('STORNO - vsetci klienti:');
-  activeClients.forEach((c,i) => {
+  activeClients.forEach((c,i)=>{
     lines.push('');
     lines.push((i+1)+'.)');
     if(c.name) lines.push('Klient: '+c.name+(c.pax?', '+c.pax+' pax':''));
@@ -1659,41 +1649,196 @@ async function openStorno(id, h){
   lines.push(sender.phone);
 
   const txt = lines.join('\n');
-  const clientParts = activeClients.map(c => (c.name||'')+(c.pax?', '+c.pax+' pax':'')+(c.voucher?', '+c.voucher:'')).filter(Boolean);
+  const clientParts = activeClients.map(c=>(c.name||'')+(c.pax?', '+c.pax+' pax':'')+(c.voucher?', '+c.voucher:'')).filter(Boolean);
   const subj = 'Storno objednavky, '+guideName+', '+date+(clientParts.length?', '+clientParts.slice(0,2).join(' | '):'');
 
-  // Update existing record as storno — no new record created
-  await SB.from('bookings').update({ is_storno: true, text: txt, subject: subj }).eq('id', id);
+  await SB.from('bookings').update({is_storno:true, text:txt, subject:subj}).eq('id',id);
+  const idx=historyCache.findIndex(x=>x.id===id);
+  if(idx!==-1) historyCache[idx].is_storno=true;
 
-  // Update local cache
-  const idx = historyCache.findIndex(x => x.id === id);
-  if(idx !== -1){ historyCache[idx].is_storno = true; }
-
-  // Store guide email for openOutlook
-  window._stornoGuideEmail = guideEmail;
-
-  // Show email output
-  lastTxt = txt;
-  lastSubj = subj;
-  const out = document.getElementById('out');
-  out.textContent = txt;
-  out.style.display = 'block';
-  document.getElementById('out-acts').style.display = 'flex';
-
-  // Restore outlook button to use openOutlook function
-  const outlookBtn = document.getElementById('outlook-btn');
-  if(outlookBtn){
-    outlookBtn.href = '#';
-    outlookBtn.onclick = openOutlook;
-  }
-
+  lastTxt=txt; lastSubj=subj;
+  window._stornoGuideEmail=guideEmail;
+  document.getElementById('out').textContent=txt;
+  document.getElementById('out').style.display='block';
+  document.getElementById('out-acts').style.display='flex';
+  const outlookBtn=document.getElementById('outlook-btn');
+  if(outlookBtn){outlookBtn.href='#';outlookBtn.onclick=openOutlook;}
   nav('compose');
-  window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 }
 
-function exitAmend(){
-  amendId=null;
-  document.getElementById('abanner').style.display='none';
+async function openPartialStorno(id, h){
+  if(h.is_storno){ alert('Tato objednavka je uz stornovana.'); return; }
+
+  // Parse clients
+  let clients = [];
+  try{ clients = JSON.parse(h.clients||'[]'); } catch{}
+  const activeClients = clients.filter(c=>!c.cancelled);
+
+  if(activeClients.length < 2){
+    alert('Ciastocne storno je mozne len pri 2 a viac klientoch. Pre uplne storno pouzite tlacidlo Storno.');
+    return;
+  }
+
+  // Build selection dialog
+  const clientList = activeClients.map((c,i)=>
+    `<label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;cursor:pointer;">
+      <input type="checkbox" name="pstorno" value="${i}" style="width:18px;height:18px;cursor:pointer;">
+      <span><strong>${esc(c.name||'Klient '+(i+1))}</strong>, ${c.pax||1} pax${c.voucher?' · '+esc(c.voucher):''}</span>
+    </label>`
+  ).join('');
+
+  // Show modal
+  const modal = document.createElement('div');
+  modal.id = 'pstorno-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--bg);border-radius:var(--rl);padding:28px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;">
+      <h3 style="margin:0 0 6px;">Čiastočné storno</h3>
+      <p style="margin:0 0 16px;color:var(--text2);font-size:13px;">Vyber klientov ktorých chceš stornovať:</p>
+      <form id="pstorno-form">${clientList}</form>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button class="btn btn-p btn-fw" onclick="confirmPartialStorno('${id}',${JSON.stringify(h).replace(/'/g,"&#39;")})">Vygenerovat storno email</button>
+        <button class="btn btn-g" onclick="document.getElementById('pstorno-modal').remove()">Zrusit</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+}
+
+async function confirmPartialStorno(id, h){
+  const checked = [...document.querySelectorAll('#pstorno-form input[name="pstorno"]:checked')].map(x=>parseInt(x.value));
+  if(!checked.length){ alert('Vyber aspon jedneho klienta.'); return; }
+
+  let clients = [];
+  try{ clients = JSON.parse(h.clients||'[]'); }catch{}
+  const activeClients = clients.filter(c=>!c.cancelled);
+
+  const stornoClients = checked.map(i=>activeClients[i]);
+  const remainingClients = activeClients.filter((_,i)=>!checked.includes(i));
+
+  document.getElementById('pstorno-modal').remove();
+
+  const sender = getSender();
+  if(!sender){ alert('Vyber objednavatela.'); return; }
+
+  const date = h.date ? fmtDate(h.date) : '-';
+  const guideName = h.guide_name || 'Guide';
+  const guideEmail = (guidesCache.find(x=>x.id===h.guide_id)||{}).email || '';
+
+  const svcDurMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod',devin:'5 hod'};
+  const svcLblMap={
+    walk1:'pesia prehliadka Bratislavy',walk15:'pesia prehliadka Bratislavy',
+    walk2:'pesia prehliadka Bratislavy',walk3:'pesia prehliadka Bratislavy',
+    gct:'Grand City Tour',combo:'Grand City Tour + Walking Tour',
+    'gct-auto':'Bratislava Grand City Tour vlastnym autom',
+    wine:'Malokarpatsky vinny okruh',devin:'Bratislava Grand City Tour with Devin Castle'
+  };
+  const langSk = {EN:'Anglictina',DE:'Nemcina',ES:'Spanielcina',FR:'Francuzstina',IT:'Taliancina'}[h.lang]||h.lang||'';
+  const langEn = {EN:'English',DE:'German',ES:'Spanish',FR:'French',IT:'Italian'}[h.lang]||h.lang||'';
+  const svcLbl = svcLblMap[h.service_type]||'pesia prehliadka Bratislavy';
+
+  const lines = [];
+  lines.push('Dobry den,');
+  lines.push('');
+  lines.push('Zasielam Vam zmenu v objednavke — ciastocne storno.');
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+  lines.push('Servis: '+(svcDurMap[h.service_type]||'')+' '+svcLbl+' v '+langSk+' ('+langEn+')');
+  lines.push('Datum: '+date);
+  if(h.meeting) lines.push('Cas zaciatok: '+h.meeting);
+  if(h.end_guide) lines.push('Koniec sprevadzania: '+h.end_guide);
+  lines.push('');
+
+  // Active clients
+  let cnt = 1;
+  remainingClients.forEach(c=>{
+    lines.push(cnt+'.)');
+    lines.push('Klient: '+(c.name||'Klient')+', '+(c.pax||1)+' pax');
+    if(c.voucher) lines.push('Voucher: '+c.voucher);
+    if(c.note) lines.push('Note: '+c.note);
+    lines.push('');
+    cnt++;
+  });
+
+  // Storno clients
+  stornoClients.forEach(c=>{
+    lines.push(cnt+'.) STORNO');
+    lines.push('Klient: '+(c.name||'Klient')+', '+(c.pax||1)+' pax - STORNO');
+    if(c.voucher) lines.push('Voucher: '+c.voucher+' - STORNO');
+    if(c.note) lines.push('Note: '+c.note);
+    lines.push('');
+    cnt++;
+  });
+
+  // Recalculate price for remaining clients only
+  const remainPax = remainingClients.reduce((s,c)=>s+(parseInt(c.pax)||1),0);
+  const price = calcPriceForService(h.service_type, h.lang, remainPax);
+  lines.push('CENA: '+price+' EUR / UHRADA: '+(h.payment||'FAKTURA NA ETRAVEL'));
+  lines.push('');
+  lines.push('');
+  lines.push('Poprosim Vas o kratke potvrdenie.');
+  lines.push('');
+  lines.push('S pozdravom,');
+  lines.push('');
+  lines.push(sender.name);
+  lines.push(sender.email);
+  lines.push(sender.phone);
+
+  const txt = lines.join('\n');
+  const stornoPart = stornoClients.map(c=>(c.name||'')+(c.pax?', '+c.pax+' pax':'')+' STORNO').join(' | ');
+  const subj = 'Zmena objednavky, '+guideName+', '+date+', '+stornoPart;
+
+  // Update booking in DB — mark storno clients
+  const updatedClients = clients.map(c=>{
+    const idx = activeClients.indexOf(c);
+    if(stornoClients.includes(activeClients[idx])) return {...c, cancelled:true};
+    return c;
+  });
+  await SB.from('bookings').update({
+    clients: JSON.stringify(updatedClients),
+    client_names: JSON.stringify(remainingClients.map(c=>c.name).filter(Boolean)),
+    text: txt,
+    subject: subj
+  }).eq('id', id);
+
+  // Update cache
+  const idx = historyCache.findIndex(x=>x.id===id);
+  if(idx!==-1){
+    historyCache[idx].clients = JSON.stringify(updatedClients);
+    historyCache[idx].client_names = JSON.stringify(remainingClients.map(c=>c.name).filter(Boolean));
+  }
+
+  // Show email
+  lastTxt = txt;
+  lastSubj = subj;
+  stornoId = id;
+  window._stornoGuideEmail = guideEmail;
+  document.getElementById('out').textContent = txt;
+  document.getElementById('out').style.display = 'block';
+  document.getElementById('out-acts').style.display = 'flex';
+  const outlookBtn = document.getElementById('outlook-btn');
+  if(outlookBtn){ outlookBtn.href='#'; outlookBtn.onclick=openOutlook; }
+
+  nav('compose');
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+}
+
+function calcPriceForService(serviceType, lang, pax){
+  const l = lang || 'EN';
+  if(serviceType==='walk1') return getWalkPrice(l, pax);
+  if(serviceType==='walk15') return FIXED_WALK_P.walk15[l]||50;
+  if(serviceType==='walk2') return FIXED_WALK_P.walk2[l]||55;
+  if(serviceType==='walk3') return FIXED_WALK_P.walk3[l]||78;
+  if(serviceType==='gct') return GCT_P[l]||78;
+  if(serviceType==='wine') return WINE_P[l]||125;
+  if(serviceType==='devin') return DEVIN_P[l]||110;
+  if(serviceType==='gct-auto') return 98;
+  return 0;
+}
+
+function exitAmend(){cument.getElementById('abanner').style.display='none';
   document.getElementById('c-title').textContent='Novy email';
   document.getElementById('c-sub').textContent='Vypln detaily, vyber objednavatela a odosli do Outlooku jednym klikom.';
   document.getElementById('gen-lbl').textContent='Vygenerovat email';
@@ -1793,6 +1938,7 @@ function filterHistory(){
         <button class="btn btn-w" style="font-size:12px;padding:5px 9px;" onclick="openAmend('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Zmena</button>
         <button class="btn btn-p" style="font-size:12px;padding:5px 9px;" onclick="openCopyNew(JSON.parse(decodeURIComponent('${henc}')))">Kopirovat ako nova</button>
         <button class="btn btn-d" style="font-size:12px;padding:5px 9px;" onclick="openStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Storno</button>
+        <button class="btn btn-w" style="font-size:12px;padding:5px 9px;background:#fff7e6;border-color:#f0a500;color:#b37700;" onclick="openPartialStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Ciastocne storno</button>
         <button class="btn btn-g" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger-l);" onclick="deleteBooking('${h.id}')">Zmazat</button>
       </div>
     </div>`;
