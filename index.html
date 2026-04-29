@@ -1730,8 +1730,10 @@ async function confirmPartialStorno(){
 
   document.getElementById('pstorno-modal').remove();
 
-  const sender = getSender();
-  if(!sender){ alert('Vyber objednavatela.'); return; }
+  // Use sender from original booking
+  const senderKey = h.sender_key || document.getElementById('f-sender').value;
+  const sender = senderKey ? SENDERS[senderKey] : getSender();
+  if(!sender){ alert('Objednavatel nie je znamy. Otvor Novy email a vyber objednavatela.'); return; }
 
   const date = h.date ? fmtDate(h.date) : '-';
   const guideName = h.guide_name || 'Guide';
