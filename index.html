@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2d5a3d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="BCT Email Builder">
 <title>Tour Email Builder — e-travel.sk</title>
 <style>
 :root{
@@ -193,6 +197,11 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
 <body>
 
 <div id="notif-container" class="notif-container"></div>
+
+<!-- Offline banner -->
+<div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9997;background:#e67e22;color:#fff;padding:10px 20px;text-align:center;font-size:13px;font-weight:500;">
+  ⚠️ Si offline — appka funguje ale ukladanie do databázy nie je dostupné.
+</div>
 
 <div class="setup" id="pwd-screen" style="display:none;">
   <div class="setup-box" style="width:400px;">
@@ -2107,5 +2116,23 @@ async function savePrices(){
 document.getElementById('gmodal').addEventListener('click',function(e){if(e.target===this)closeGM();});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="bootApp()" onerror="alert('Chyba načítania. Skontroluj internet.')"></script>
+<script>
+// Service Worker — only on GitHub Pages
+if('serviceWorker' in navigator && location.hostname.includes('github.io')){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg=>{ setInterval(()=>reg.update(),60000); })
+      .catch(err=>console.warn('SW failed:',err));
+  });
+}
+// Online/Offline banner
+function updateOnlineStatus(){
+  const b=document.getElementById('offline-banner');
+  if(b) b.style.display=navigator.onLine?'none':'block';
+}
+window.addEventListener('online',updateOnlineStatus);
+window.addEventListener('offline',updateOnlineStatus);
+updateOnlineStatus();
+</script>
 </body>
 </html>
