@@ -1886,7 +1886,9 @@ function calcPriceForService(serviceType, lang, pax){
   return 0;
 }
 
-function exitAmend(){cument.getElementById('abanner').style.display='none';
+function exitAmend(){
+  amendId=null;
+  document.getElementById('abanner').style.display='none';
   document.getElementById('c-title').textContent='Novy email';
   document.getElementById('c-sub').textContent='Vypln detaily, vyber objednavatela a odosli do Outlooku jednym klikom.';
   document.getElementById('gen-lbl').textContent='Vygenerovat email';
@@ -2235,7 +2237,7 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
     const cvEl=document.getElementById('cv'+newId);
     if(cvEl){cvEl.value=voucher;cData[newId].voucher=voucher;}
     if(isViennaTour){
-      const ntEl=document.getElementById('nt'+newId);
+      const ntEl=document.getElementById('cno'+newId);
       if(ntEl){ntEl.value='klienti maju polievku & halusky v Pulitzer SNP';cData[newId].note='klienti maju polievku & halusky v Pulitzer SNP';}
     }
   }
