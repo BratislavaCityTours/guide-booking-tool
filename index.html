@@ -2100,9 +2100,28 @@ function parseBokun(){
     return m ? m[1].trim() : '';
   };
 
+  // Product needs special handling — skip lines with "booking ref" or "BTSCITY"
+  const getProduct = () => {
+    const lines = txt.split(/[\n\r]+/);
+    for(let i=0; i<lines.length; i++){
+      if(/^\s*Product\s*[:\|]/i.test(lines[i])){
+        const val = lines[i].replace(/^\s*Product\s*[:\|]\s*/i,'').trim();
+        // Skip if it looks like a booking ref
+        if(val && !val.match(/^(booking ref|BTSCITY|GYG|VIA|CIV)/i)){
+          return val;
+        }
+        // Check next line too
+        if(lines[i+1]) return lines[i+1].trim();
+      }
+    }
+    // Fallback — search for Vienna/lunch pattern anywhere
+    const viennaMatch = txt.match(/([^\n]*(?:vienna|bratislava)[^\n]*(?:lunch|bus|tour)[^\n]*)/i);
+    return viennaMatch ? viennaMatch[1].trim() : '';
+  };
+
   const customer = get('Customer');
   const extRef = get('Ext\\.? booking ref');
-  const product = get('Product');
+  const product = getProduct();
   const soldBy = get('Sold by');
   const dateRaw = get('Date');
   const paxRaw = get('PAX');
