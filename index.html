@@ -2205,32 +2205,17 @@ function showLangPicker(langs, callback){
 }
 
 function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour}){
-  // Reset clients first
+  // Step 1: Reset and set service type
   cIds=[];cCnt=0;cData={};
   document.getElementById('clist').innerHTML='';
-
-  // Set service type
   setSvc(tourType);
 
-  // Set language AFTER setSvc
+  // Step 2: Set language
   const lMap={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
   const lsel=document.getElementById(lMap[tourType]||'w1-lang');
-  if(lsel&&lang){ lsel.value=lang; }
+  if(lsel&&lang) lsel.value=lang;
 
-  // Date
-  if(isoDate){ document.getElementById('f-date').value=isoDate; updateDateDisplay(); }
-
-  // Meeting & end — Vienna tour always uses fixed values
-  if(isViennaTour){
-    document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
-    document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
-  } else if(time){
-    document.getElementById('f-meet').value=time;
-  }
-
-  document.getElementById('f-pay').value='FAKTURA NA ETRAVEL';
-
-  // Add client
+  // Step 3: Add client
   addClient();
   const newId=cIds[cIds.length-1];
   if(newId){
@@ -2248,8 +2233,23 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
       }
     }
   }
-  updatePrices();
-  showNotif('✅ Import uspesny',customer+' · '+pax+' pax · '+voucher,null);
+
+  // Step 4: Set date/time fields LAST using setTimeout to ensure nothing overwrites them
+  setTimeout(()=>{
+    if(isoDate){
+      document.getElementById('f-date').value=isoDate;
+      updateDateDisplay();
+    }
+    if(isViennaTour){
+      document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
+      document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
+    } else if(time){
+      document.getElementById('f-meet').value=time;
+    }
+    document.getElementById('f-pay').value='FAKTURA NA ETRAVEL';
+    updatePrices();
+    showNotif('✅ Import uspesny',customer+' · '+pax+' pax · '+voucher,null);
+  }, 100);
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
