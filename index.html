@@ -2183,13 +2183,6 @@ function parseBokun(){
 
   const isViennaTour = pl.includes('vienna')&&pl.includes('lunch');
 
-  // DEBUG — remove after testing
-  console.log('DEBUG product:', product);
-  console.log('DEBUG pl:', pl);
-  console.log('DEBUG isViennaTour:', isViennaTour);
-  console.log('DEBUG time:', time);
-  console.log('DEBUG isoDate:', isoDate);
-
   // Show warnings but continue
   if(warnings.length){
     errEl.innerHTML = '⚠️ Import prebehol ale nieco treba skontrolovat:<br><strong>'+warnings.join('<br>')+'</strong>';
@@ -2231,17 +2224,20 @@ function showLangPicker(langs, callback){
 }
 
 function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour}){
-  // Step 1: Reset and set service type
-  cIds=[];cCnt=0;cData={};
-  document.getElementById('clist').innerHTML='';
-  setSvc(tourType);
+  console.log('applyBokunData called, isViennaTour=', isViennaTour, 'time=', time);
 
-  // Step 2: Set language
-  const lMap={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
-  const lsel=document.getElementById(lMap[tourType]||'w1-lang');
-  if(lsel&&lang) lsel.value=lang;
+  // Step 1: Only reset clients if NOT in amend mode
+  if(!amendId){
+    cIds=[];cCnt=0;cData={};
+    document.getElementById('clist').innerHTML='';
+    setSvc(tourType);
+    // Set language
+    const lMap={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
+    const lsel=document.getElementById(lMap[tourType]||'w1-lang');
+    if(lsel&&lang) lsel.value=lang;
+  }
 
-  // Step 3: Add client
+  // Step 2: Add client
   addClient();
   const newId=cIds[cIds.length-1];
   if(newId){
@@ -2260,22 +2256,26 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
     }
   }
 
-  // Step 4: Set date/time fields LAST using setTimeout to ensure nothing overwrites them
+  // Step 3: Set date/time fields last
   setTimeout(()=>{
-    if(isoDate){
+    if(isoDate && !amendId){
       document.getElementById('f-date').value=isoDate;
       updateDateDisplay();
     }
     if(isViennaTour){
       document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
       document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
-    } else if(time){
+      setTimeout(()=>{
+        document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
+        document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
+      }, 200);
+    } else if(time && !amendId){
       document.getElementById('f-meet').value=time;
     }
     document.getElementById('f-pay').value='FAKTURA NA ETRAVEL';
     updatePrices();
     showNotif('✅ Import uspesny',customer+' · '+pax+' pax · '+voucher,null);
-  }, 100);
+  }, 300);
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
