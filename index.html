@@ -2164,6 +2164,13 @@ function parseBokun(){
 
   const isViennaTour = pl.includes('vienna')&&pl.includes('lunch');
 
+  // DEBUG — remove after testing
+  console.log('DEBUG product:', product);
+  console.log('DEBUG pl:', pl);
+  console.log('DEBUG isViennaTour:', isViennaTour);
+  console.log('DEBUG time:', time);
+  console.log('DEBUG isoDate:', isoDate);
+
   // Show warnings but continue
   if(warnings.length){
     errEl.innerHTML = '⚠️ Import prebehol ale nieco treba skontrolovat:<br><strong>'+warnings.join('<br>')+'</strong>';
