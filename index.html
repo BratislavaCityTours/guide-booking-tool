@@ -2205,28 +2205,32 @@ function showLangPicker(langs, callback){
 }
 
 function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour}){
+  // Reset clients first
+  cIds=[];cCnt=0;cData={};
+  document.getElementById('clist').innerHTML='';
+
+  // Set service type
   setSvc(tourType);
-  // Set language
+
+  // Set language AFTER setSvc
   const lMap={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
   const lsel=document.getElementById(lMap[tourType]||'w1-lang');
   if(lsel&&lang){ lsel.value=lang; }
 
-  // Date & time
+  // Date
   if(isoDate){ document.getElementById('f-date').value=isoDate; updateDateDisplay(); }
 
-  // For Vienna tour — always use fixed values, ignore time from email
-  const meetVal = isViennaTour ? '12:00 z pred PARK INN DANUBE' : (time ? time+' ' : '');
-  if(meetVal) document.getElementById('f-meet').value=meetVal;
-
+  // Meeting & end — Vienna tour always uses fixed values
   if(isViennaTour){
-    const eg=document.getElementById('f-end-guide');
-    if(eg) eg.value='13:00 v Pulitzer SNP';
+    document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
+    document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
+  } else if(time){
+    document.getElementById('f-meet').value=time;
   }
+
   document.getElementById('f-pay').value='FAKTURA NA ETRAVEL';
 
-  // Reset clients and add one
-  cIds=[];cCnt=0;cData={};
-  document.getElementById('clist').innerHTML='';
+  // Add client
   addClient();
   const newId=cIds[cIds.length-1];
   if(newId){
@@ -2238,7 +2242,10 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
     if(cvEl){cvEl.value=voucher;cData[newId].voucher=voucher;}
     if(isViennaTour){
       const ntEl=document.getElementById('cno'+newId);
-      if(ntEl){ntEl.value='klienti maju polievku & halusky v Pulitzer SNP';cData[newId].note='klienti maju polievku & halusky v Pulitzer SNP';}
+      if(ntEl){
+        ntEl.value='klienti maju polievku & halusky v Pulitzer SNP';
+        cData[newId].note='klienti maju polievku & halusky v Pulitzer SNP';
+      }
     }
   }
   updatePrices();
