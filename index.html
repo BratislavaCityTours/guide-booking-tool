@@ -2211,8 +2211,11 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
 
   // Date & time
   if(isoDate){ document.getElementById('f-date').value=isoDate; updateDateDisplay(); }
-  const meetVal = isViennaTour ? (time+' z pred PARK INN DANUBE') : (time||'');
+
+  // For Vienna tour — always use fixed values, ignore time from email
+  const meetVal = isViennaTour ? '12:00 z pred PARK INN DANUBE' : (time ? time+' ' : '');
   if(meetVal) document.getElementById('f-meet').value=meetVal;
+
   if(isViennaTour){
     const eg=document.getElementById('f-end-guide');
     if(eg) eg.value='13:00 v Pulitzer SNP';
@@ -2233,7 +2236,7 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
     if(cvEl){cvEl.value=voucher;cData[newId].voucher=voucher;}
     if(isViennaTour){
       const ntEl=document.getElementById('nt'+newId);
-      if(ntEl){ntEl.value='klienti maju halusky & polievku v Pulitzer SNP';cData[newId].note='klienti maju halusky & polievku v Pulitzer SNP';}
+      if(ntEl){ntEl.value='klienti maju polievku & halusky v Pulitzer SNP';cData[newId].note='klienti maju polievku & halusky v Pulitzer SNP';}
     }
   }
   updatePrices();
