@@ -2182,8 +2182,12 @@ function parseBokun(){
   else if(pl.includes('3 hour')||pl.includes('3-hour')) tourType='walk3';
 
   const isViennaTour = pl.includes('vienna')&&pl.includes('lunch')
-    || txt.toLowerCase().includes('bratislava from vienna')
-    || txt.toLowerCase().includes('day trip from vienna');
+    || txt.toLowerCase().includes('bratislava from vienna')&&txt.toLowerCase().includes('lunch')
+    || txt.toLowerCase().includes('day trip from vienna')&&txt.toLowerCase().includes('lunch');
+  const isCoffeeCakeTour = pl.includes('coffee')&&pl.includes('cake')
+    || txt.toLowerCase().includes('coffee & cake')
+    || txt.toLowerCase().includes('coffee and cake')
+    || txt.toLowerCase().includes('122520p10');
   const isClassicalWalk = pl.includes('classical')||pl.includes('122520p1')
     || txt.toLowerCase().includes('classical walking tour')
     || txt.toLowerCase().includes('122520p1');
@@ -2196,9 +2200,9 @@ function parseBokun(){
     setTimeout(()=>{
       document.getElementById('bokun-modal').remove();
       if(langs.length > 1){
-        showLangPicker(langs,(l)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:l,tourType,isViennaTour,isClassicalWalk}));
+        showLangPicker(langs,(l)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:l,tourType,isViennaTour,isCoffeeCakeTour,isClassicalWalk}));
       } else {
-        applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isClassicalWalk});
+        applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isCoffeeCakeTour,isClassicalWalk});
       }
     }, 2500);
     return;
@@ -2206,9 +2210,9 @@ function parseBokun(){
 
   document.getElementById('bokun-modal').remove();
   if(langs.length > 1){
-    showLangPicker(langs,(chosenLang)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:chosenLang,tourType,isViennaTour,isClassicalWalk}));
+    showLangPicker(langs,(chosenLang)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:chosenLang,tourType,isViennaTour,isCoffeeCakeTour,isClassicalWalk}));
   } else {
-    applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isClassicalWalk});
+    applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isCoffeeCakeTour,isClassicalWalk});
   }
 }
 
@@ -2228,7 +2232,7 @@ function showLangPicker(langs, callback){
   modal.addEventListener('click',e=>{ if(e.target===modal) modal.remove(); });
 }
 
-function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour,isClassicalWalk}){
+function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour,isCoffeeCakeTour,isClassicalWalk}){
   console.log('applyBokunData called, isViennaTour=', isViennaTour, 'isClassicalWalk=', isClassicalWalk, 'time=', time);
 
   // Step 1: Only reset clients if NOT in amend mode
@@ -2259,6 +2263,13 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
         cData[newId].note='klienti maju polievku & halusky v Pulitzer SNP';
       }
     }
+    if(isCoffeeCakeTour){
+      const ntEl=document.getElementById('cno'+newId);
+      if(ntEl){
+        ntEl.value='klienti maju coffee & cake';
+        cData[newId].note='klienti maju coffee & cake';
+      }
+    }
     if(isClassicalWalk){
       const ntEl=document.getElementById('cno'+newId);
       if(ntEl){
@@ -2280,6 +2291,15 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
       setTimeout(()=>{
         document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
         document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
+      }, 200);
+    } else if(isCoffeeCakeTour){
+      document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
+      const eg=document.getElementById('f-end-guide');
+      if(eg) eg.value='13:00';
+      setTimeout(()=>{
+        document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
+        const eg2=document.getElementById('f-end-guide');
+        if(eg2) eg2.value='13:00';
       }, 200);
     } else if(isClassicalWalk){
       document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
@@ -2388,4 +2408,12 @@ if('serviceWorker' in navigator && location.hostname.includes('github.io')){
 }
 // Online/Offline banner
 function updateOnlineStatus(){
-  const b=document.getElementById('offline-ba
+  const b=document.getElementById('offline-banner');
+  if(b) b.style.display=navigator.onLine?'none':'block';
+}
+window.addEventListener('online',updateOnlineStatus);
+window.addEventListener('offline',updateOnlineStatus);
+updateOnlineStatus();
+</script>
+</body>
+</html>
