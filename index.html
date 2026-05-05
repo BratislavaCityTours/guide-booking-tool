@@ -524,13 +524,30 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
         <label>Platba</label>
         <input type="text" id="f-pay" value="FAKTURA NA ETRAVEL">
 
-        <div style="margin-top:14px;padding:12px 14px;background:var(--surface2);border-radius:var(--r);border:1px solid var(--border2);display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="document.getElementById('f-bus-ticket').click()">
-          <input type="checkbox" id="f-bus-ticket" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);" onchange="void 0">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--text);">🚌 Zahŕňa lístok na bus (Vienna)</div>
-            <div style="font-size:11px;color:var(--text2);margin-top:1px;">Interné — nezobrazí sa v emaili guidovi</div>
+        <div id="vienna-ticket-box" style="display:none;margin-top:14px;padding:14px;background:#eaf4ee;border-radius:var(--r);border:1px solid #b2d8be;">
+          <div style="font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.06em;margin-bottom:10px;">🚌 LÍSTKY NA BUS (interné)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="font-size:12px;color:var(--text2);">Objednané lístky</label>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                <button type="button" onclick="ticketAdj('f-tickets-ordered',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+                <input type="number" id="f-tickets-ordered" min="0" value="2" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
+                <button type="button" onclick="ticketAdj('f-tickets-ordered',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:12px;color:var(--text2);">Stornované lístky</label>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                <button type="button" onclick="ticketAdj('f-tickets-cancelled',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+                <input type="number" id="f-tickets-cancelled" min="0" value="0" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
+                <button type="button" onclick="ticketAdj('f-tickets-cancelled',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+              </div>
+            </div>
           </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--text2);">Nezobrazí sa v emaili guidovi · No-show = stornovaný 1 spiatočný lístok</div>
         </div>
+      </div>
+
       <div class="card">
         <div class="ct">Guide (príjemca emailu)</div>
         <div class="gsr">
@@ -1324,6 +1341,26 @@ function renum(){cIds.forEach((id,i)=>{const b=document.getElementById('cbn'+id)
 
 // ── Generate ──────────────────────────────────────────────
 let amendId=null,stornoId=null,lastTxt='',lastSubj='';
+function ticketAdj(id, delta){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.value = Math.max(0, (parseInt(el.value)||0) + delta);
+}
+
+function updateTicketBox(){
+  const box = document.getElementById('vienna-ticket-box');
+  if(!box) return;
+  box.style.display = currentViennaType ? 'block' : 'none';
+  if(currentViennaType){
+    // Auto-set ordered tickets = pax * 2 (tam + spat) if still default
+    const ordered = document.getElementById('f-tickets-ordered');
+    if(ordered && ordered.value === '2'){
+      const totalPax = cIds.filter(id=>!cData[id]?.cancelled).reduce((s,id)=>s+(parseInt(cData[id]?.pax)||1),0);
+      if(totalPax > 0) ordered.value = totalPax * 2;
+    }
+  }
+}
+
 function gv(id){const e=document.getElementById(id);return e?e.value.trim():'';}
 function fmtDate(d){if(!d)return'';const[y,m,day]=d.split('-');return`${day}.${m}.${y}`;}
 function updateDateDisplay(){
@@ -1556,7 +1593,9 @@ async function saveHist(){
     is_amendment:!!amendId,
     is_vienna:!!currentViennaType,
     vienna_type:currentViennaType,
-    has_bus_ticket:document.getElementById('f-bus-ticket').checked,
+    has_bus_ticket:!!currentViennaType,
+    tickets_ordered: currentViennaType ? (parseInt(document.getElementById('f-tickets-ordered')?.value)||0) : 0,
+    tickets_cancelled: currentViennaType ? (parseInt(document.getElementById('f-tickets-cancelled')?.value)||0) : 0,
     created_at:new Date().toISOString()
   };
   try {
@@ -1576,6 +1615,9 @@ async function saveHist(){
 function resetForm(){
   cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';window._stornoGuideEmail=null;currentViennaType='';
   const btEl=document.getElementById('f-bus-ticket'); if(btEl) btEl.checked=false;
+  const toEl=document.getElementById('f-tickets-ordered'); if(toEl) toEl.value=2;
+  const tcEl=document.getElementById('f-tickets-cancelled'); if(tcEl) tcEl.value=0;
+  updateTicketBox();
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
@@ -1607,6 +1649,9 @@ function openAmend(id, h){
   if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
   if(h.end2)document.getElementById('f-end2').value=h.end2||'';
   const btEl=document.getElementById('f-bus-ticket'); if(btEl) btEl.checked=!!h.has_bus_ticket;
+  const toEl=document.getElementById('f-tickets-ordered'); if(toEl) toEl.value=h.tickets_ordered||2;
+  const tcEl=document.getElementById('f-tickets-cancelled'); if(tcEl) tcEl.value=h.tickets_cancelled||0;
+  setTimeout(updateTicketBox,50);
   if(h.vienna_type) currentViennaType=h.vienna_type;
   if(h.sender_key){document.getElementById('f-sender').value=h.sender_key;onSender();}
   if(h.service_type)setSvc(h.service_type);
@@ -1647,9 +1692,11 @@ async function openCopyNew(h){
   if(h.car_meeting){const el=document.getElementById('f-car')||document.getElementById('f-car2');if(el)el.value=h.car_meeting;}
   if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
   if(h.end2)document.getElementById('f-end2').value=h.end2||'';
-  const btEl2=document.getElementById('f-bus-ticket'); if(btEl2) btEl2.checked=!!h.has_bus_ticket;
   if(h.vienna_type) currentViennaType=h.vienna_type;
-  if(h.sender_key){document.getElementById('f-sender').value=h.sender_key;onSender();}
+  const btEl2=document.getElementById('f-bus-ticket'); if(btEl2) btEl2.checked=!!h.has_bus_ticket;
+  const toEl2=document.getElementById('f-tickets-ordered'); if(toEl2) toEl2.value=h.tickets_ordered||2;
+  const tcEl2=document.getElementById('f-tickets-cancelled'); if(tcEl2) tcEl2.value=h.tickets_cancelled||0;
+  setTimeout(updateTicketBox,50);
   if(h.service_type)setSvc(h.service_type);
   if(h.lang){
     const lselId={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
@@ -2409,6 +2456,7 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
     }
     document.getElementById('f-pay').value='FAKTURA NA ETRAVEL';
     updatePrices();
+    updateTicketBox();
     showNotif('✅ Import uspesny',customer+' · '+pax+' pax · '+voucher,null);
   }, 300);
 }
@@ -2531,7 +2579,7 @@ async function loadViennaDashboard(){
     // months 0-11, types
     const months = Array.from({length:12}, (_,i)=>({
       month: i,
-      types: Object.fromEntries(VIENNA_TYPES.map(t=>[t,{booked:0,cancelled:0}]))
+      types: Object.fromEntries(VIENNA_TYPES.map(t=>[t,{tickets_ordered:0,tickets_cancelled:0}]))
     }));
 
     data.forEach(row=>{
@@ -2541,25 +2589,19 @@ async function loadViennaDashboard(){
       const vt = row.vienna_type;
       if(!months[m].types[vt]) return;
 
-      let clients = [];
-      try { clients = JSON.parse(row.clients||'[]'); } catch{}
-
-      clients.forEach(c=>{
-        const pax = parseInt(c.pax)||1;
-        if(c.cancelled) months[m].types[vt].cancelled += pax;
-        else months[m].types[vt].booked += pax;
-      });
+      months[m].types[vt].tickets_ordered += parseInt(row.tickets_ordered)||0;
+      months[m].types[vt].tickets_cancelled += parseInt(row.tickets_cancelled)||0;
     });
 
     // Render table
     const monthNames = ['Január','Február','Marec','Apríl','Máj','Jún','Júl','August','September','Október','November','December'];
     
     // Yearly totals
-    const yearTotals = Object.fromEntries(VIENNA_TYPES.map(t=>[t,{booked:0,cancelled:0}]));
+    const yearTotals = Object.fromEntries(VIENNA_TYPES.map(t=>[t,{tickets_ordered:0,tickets_cancelled:0}]));
     months.forEach(m=>{
       VIENNA_TYPES.forEach(t=>{
-        yearTotals[t].booked += m.types[t].booked;
-        yearTotals[t].cancelled += m.types[t].cancelled;
+        yearTotals[t].tickets_ordered += m.types[t].tickets_ordered;
+        yearTotals[t].tickets_cancelled += m.types[t].tickets_cancelled;
       });
     });
 
@@ -2580,40 +2622,44 @@ async function loadViennaDashboard(){
                <th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);text-align:center;font-size:10px;color:var(--danger);font-weight:600;">Storno</th>`;
     });
     html += `<th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);border-left:2px solid var(--border);text-align:center;font-size:10px;color:var(--accent);font-weight:600;">Objedn.</th>
-             <th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);text-align:center;font-size:10px;color:var(--danger);font-weight:600;">Storno</th></tr>
+             <th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);text-align:center;font-size:10px;color:var(--danger);font-weight:600;">Storno</th>
+             <th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);text-align:center;font-size:10px;color:var(--text2);font-weight:600;">Využité</th></tr>
         </thead><tbody>`;
 
     months.forEach((m,i)=>{
-      const rowTotal = {booked:0,cancelled:0};
+      const rowTotal = {tickets_ordered:0,tickets_cancelled:0};
       VIENNA_TYPES.forEach(t=>{
-        rowTotal.booked += m.types[t].booked;
-        rowTotal.cancelled += m.types[t].cancelled;
+        rowTotal.tickets_ordered += m.types[t].tickets_ordered;
+        rowTotal.tickets_cancelled += m.types[t].tickets_cancelled;
       });
-      const hasData = rowTotal.booked > 0 || rowTotal.cancelled > 0;
-      const bg = hasData ? '' : 'color:var(--text3);';
+      const hasData = rowTotal.tickets_ordered > 0 || rowTotal.tickets_cancelled > 0;
       html += `<tr style="border-bottom:1px solid var(--border2);${i%2===1?'background:var(--surface2);':''}">
         <td style="padding:9px 14px;font-weight:500;white-space:nowrap;">${monthNames[i]}</td>`;
       VIENNA_TYPES.forEach(t=>{
-        const b = m.types[t].booked, c = m.types[t].cancelled;
+        const b = m.types[t].tickets_ordered, c = m.types[t].tickets_cancelled;
         html += `<td style="text-align:center;padding:9px 4px;border-left:1px solid var(--border2);${b>0?'font-weight:600;color:var(--accent);':'color:var(--text3);'}">${b||'—'}</td>
                  <td style="text-align:center;padding:9px 4px;${c>0?'font-weight:600;color:var(--danger);':'color:var(--text3);'}">${c||'—'}</td>`;
       });
-      html += `<td style="text-align:center;padding:9px 8px;border-left:2px solid var(--border);${rowTotal.booked>0?'font-weight:700;color:var(--accent);':'color:var(--text3);'}">${rowTotal.booked||'—'}</td>
-               <td style="text-align:center;padding:9px 8px;${rowTotal.cancelled>0?'font-weight:700;color:var(--danger);':'color:var(--text3);'}">${rowTotal.cancelled||'—'}</td>
+      const utilized = rowTotal.tickets_ordered - rowTotal.tickets_cancelled;
+      html += `<td style="text-align:center;padding:9px 8px;border-left:2px solid var(--border);${rowTotal.tickets_ordered>0?'font-weight:700;color:var(--accent);':'color:var(--text3);'}">${rowTotal.tickets_ordered||'—'}</td>
+               <td style="text-align:center;padding:9px 8px;${rowTotal.tickets_cancelled>0?'font-weight:700;color:var(--danger);':'color:var(--text3);'}">${rowTotal.tickets_cancelled||'—'}</td>
+               <td style="text-align:center;padding:9px 8px;${utilized>0?'font-weight:700;':'color:var(--text3);'}">${rowTotal.tickets_ordered>0?utilized:'—'}</td>
                </tr>`;
     });
 
     // Totals row
-    const grandBooked = VIENNA_TYPES.reduce((s,t)=>s+yearTotals[t].booked,0);
-    const grandCancelled = VIENNA_TYPES.reduce((s,t)=>s+yearTotals[t].cancelled,0);
+    const grandOrdered = VIENNA_TYPES.reduce((s,t)=>s+yearTotals[t].tickets_ordered,0);
+    const grandCancelled = VIENNA_TYPES.reduce((s,t)=>s+yearTotals[t].tickets_cancelled,0);
+    const grandUtilized = grandOrdered - grandCancelled;
     html += `<tr style="background:var(--surface2);border-top:2px solid var(--border);font-weight:700;">
       <td style="padding:11px 14px;">ROK ${year}</td>`;
     VIENNA_TYPES.forEach(t=>{
-      html += `<td style="text-align:center;padding:11px 4px;border-left:1px solid var(--border2);color:var(--accent);">${yearTotals[t].booked||'—'}</td>
-               <td style="text-align:center;padding:11px 4px;color:var(--danger);">${yearTotals[t].cancelled||'—'}</td>`;
+      html += `<td style="text-align:center;padding:11px 4px;border-left:1px solid var(--border2);color:var(--accent);">${yearTotals[t].tickets_ordered||'—'}</td>
+               <td style="text-align:center;padding:11px 4px;color:var(--danger);">${yearTotals[t].tickets_cancelled||'—'}</td>`;
     });
-    html += `<td style="text-align:center;padding:11px 8px;border-left:2px solid var(--border);color:var(--accent);font-size:15px;">${grandBooked||'—'}</td>
+    html += `<td style="text-align:center;padding:11px 8px;border-left:2px solid var(--border);color:var(--accent);font-size:15px;">${grandOrdered||'—'}</td>
              <td style="text-align:center;padding:11px 8px;color:var(--danger);font-size:15px;">${grandCancelled||'—'}</td>
+             <td style="text-align:center;padding:11px 8px;font-size:15px;">${grandOrdered>0?grandUtilized:'—'}</td>
              </tr>`;
 
     html += '</tbody></table></div>';
@@ -2634,28 +2680,28 @@ async function exportViennaExcel(){
   // Build CSV (Excel opens CSV perfectly)
   const headers = ['Mesiac'];
   VIENNA_TYPES.forEach(t=>{ headers.push(VIENNA_LABELS[t]+' Obj.', VIENNA_LABELS[t]+' Storno'); });
-  headers.push('Spolu Obj.','Spolu Storno');
+  headers.push('Spolu Obj.','Spolu Storno','Využité');
 
   const rows = [headers];
   months.forEach((m,i)=>{
     const row = [monthNames[i]];
-    let totalB=0, totalC=0;
+    let totalO=0, totalC=0;
     VIENNA_TYPES.forEach(t=>{
-      row.push(m.types[t].booked, m.types[t].cancelled);
-      totalB+=m.types[t].booked; totalC+=m.types[t].cancelled;
+      row.push(m.types[t].tickets_ordered, m.types[t].tickets_cancelled);
+      totalO+=m.types[t].tickets_ordered; totalC+=m.types[t].tickets_cancelled;
     });
-    row.push(totalB, totalC);
+    row.push(totalO, totalC, totalO-totalC);
     rows.push(row);
   });
 
   // Totals row
   const totRow = ['ROK '+year];
-  let grandB=0, grandC=0;
+  let grandO=0, grandC=0;
   VIENNA_TYPES.forEach(t=>{
-    totRow.push(yearTotals[t].booked, yearTotals[t].cancelled);
-    grandB+=yearTotals[t].booked; grandC+=yearTotals[t].cancelled;
+    totRow.push(yearTotals[t].tickets_ordered, yearTotals[t].tickets_cancelled);
+    grandO+=yearTotals[t].tickets_ordered; grandC+=yearTotals[t].tickets_cancelled;
   });
-  totRow.push(grandB, grandC);
+  totRow.push(grandO, grandC, grandO-grandC);
   rows.push(totRow);
 
   // Convert to CSV with BOM for Excel UTF-8
