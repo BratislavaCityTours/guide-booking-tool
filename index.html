@@ -524,27 +524,35 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
         <label>Platba</label>
         <input type="text" id="f-pay" value="FAKTURA NA ETRAVEL">
 
-        <div id="vienna-ticket-box" style="display:none;margin-top:14px;padding:14px;background:#eaf4ee;border-radius:var(--r);border:1px solid #b2d8be;">
-          <div style="font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.06em;margin-bottom:10px;">🚌 LÍSTKY NA BUS (interné)</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div id="vienna-ticket-box" style="margin-top:14px;padding:14px;background:#eaf4ee;border-radius:var(--r);border:1px solid #b2d8be;">
+          <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="toggleTicketSection()">
+            <input type="checkbox" id="f-has-tickets" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);" onchange="toggleTicketSection()">
             <div>
-              <label style="font-size:12px;color:var(--text2);">Objednané lístky</label>
-              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-                <button type="button" onclick="ticketAdj('f-tickets-ordered',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-                <input type="number" id="f-tickets-ordered" min="0" value="2" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
-                <button type="button" onclick="ticketAdj('f-tickets-ordered',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
-              </div>
-            </div>
-            <div>
-              <label style="font-size:12px;color:var(--text2);">Stornované lístky</label>
-              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-                <button type="button" onclick="ticketAdj('f-tickets-cancelled',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-                <input type="number" id="f-tickets-cancelled" min="0" value="0" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
-                <button type="button" onclick="ticketAdj('f-tickets-cancelled',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
-              </div>
+              <div style="font-size:13px;font-weight:600;color:var(--accent);">🚌 Zahŕňa lístky na Vienna bus</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:1px;">Interné — nezobrazí sa v emaili guidovi</div>
             </div>
           </div>
-          <div style="margin-top:10px;font-size:12px;color:var(--text2);">Nezobrazí sa v emaili guidovi · No-show = stornovaný 1 spiatočný lístok</div>
+          <div id="ticket-counts" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #b2d8be;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div>
+                <label style="font-size:12px;color:var(--text2);">Objednané lístky</label>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                  <button type="button" onclick="ticketAdj('f-tickets-ordered',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">−</button>
+                  <input type="number" id="f-tickets-ordered" min="0" value="2" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
+                  <button type="button" onclick="ticketAdj('f-tickets-ordered',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">+</button>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:12px;color:var(--text2);">Stornované lístky</label>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                  <button type="button" onclick="ticketAdj('f-tickets-cancelled',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">−</button>
+                  <input type="number" id="f-tickets-cancelled" min="0" value="0" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
+                  <button type="button" onclick="ticketAdj('f-tickets-cancelled',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">+</button>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:8px;font-size:11px;color:var(--text2);">No-show = stornovaný 1 spiatočný lístok</div>
+          </div>
         </div>
       </div>
 
@@ -1347,17 +1355,93 @@ function ticketAdj(id, delta){
   el.value = Math.max(0, (parseInt(el.value)||0) + delta);
 }
 
-function updateTicketBox(){
-  const box = document.getElementById('vienna-ticket-box');
-  if(!box) return;
-  box.style.display = currentViennaType ? 'block' : 'none';
-  if(currentViennaType){
-    // Auto-set ordered tickets = pax * 2 (tam + spat) if still default
+async function openTicketEdit(bookingId, ordered, cancelled){
+  const modal = document.createElement('div');
+  modal.id = 'ticket-edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--bg);border-radius:var(--rl);padding:28px;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+      <h3 style="margin:0 0 6px;font-size:16px;">🚌 Úprava lístkov</h3>
+      <p style="font-size:13px;color:var(--text2);margin:0 0 18px;">Zmeny sa uložia priamo do histórie.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+        <div>
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Objednané lístky</label>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button onclick="teAdj('te-ordered',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">−</button>
+            <input type="number" id="te-ordered" value="${ordered}" min="0" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
+            <button onclick="teAdj('te-ordered',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">+</button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Stornované lístky</label>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button onclick="teAdj('te-cancelled',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">−</button>
+            <input type="number" id="te-cancelled" value="${cancelled}" min="0" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
+            <button onclick="teAdj('te-cancelled',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">+</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-p btn-fw" onclick="saveTicketEdit('${bookingId}')">Uložiť</button>
+        <button class="btn btn-g" onclick="document.getElementById('ticket-edit-modal').remove()">Zrušiť</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+}
+
+function teAdj(id, delta){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.value = Math.max(0, (parseInt(el.value)||0) + delta);
+}
+
+async function saveTicketEdit(bookingId){
+  const ordered = parseInt(document.getElementById('te-ordered')?.value)||0;
+  const cancelled = parseInt(document.getElementById('te-cancelled')?.value)||0;
+  try {
+    const {error} = await SB.from('bookings').update({
+      tickets_ordered: ordered,
+      tickets_cancelled: cancelled,
+      has_bus_ticket: true,
+      is_vienna: true
+    }).eq('id', bookingId);
+    if(error) throw error;
+    document.getElementById('ticket-edit-modal').remove();
+    // Update cache
+    const idx = historyCache.findIndex(h=>h.id===bookingId);
+    if(idx>=0){ historyCache[idx].tickets_ordered=ordered; historyCache[idx].tickets_cancelled=cancelled; }
+    renderHistory();
+    showNotif('✅ Lístky uložené', ordered+' objednaných · '+cancelled+' stornovaných', null);
+  } catch(e) {
+    alert('Chyba: '+e.message);
+  }
+}
+
+
+
+function toggleTicketSection(){
+  const cb = document.getElementById('f-has-tickets');
+  const counts = document.getElementById('ticket-counts');
+  if(!cb || !counts) return;
+  counts.style.display = cb.checked ? 'block' : 'none';
+  if(cb.checked){
+    // Auto-set ordered = pax*2 if still at default 2
     const ordered = document.getElementById('f-tickets-ordered');
-    if(ordered && ordered.value === '2'){
+    if(ordered && ordered.value == '2'){
       const totalPax = cIds.filter(id=>!cData[id]?.cancelled).reduce((s,id)=>s+(parseInt(cData[id]?.pax)||1),0);
-      if(totalPax > 0) ordered.value = totalPax * 2;
+      if(totalPax > 1) ordered.value = totalPax * 2;
     }
+  }
+}
+
+function updateTicketBox(){
+  const cb = document.getElementById('f-has-tickets');
+  if(!cb) return;
+  // If vienna type set via Bokun import, auto-check
+  if(currentViennaType && !cb.checked){
+    cb.checked = true;
+    toggleTicketSection();
   }
 }
 
@@ -1591,11 +1675,11 @@ async function saveHist(){
     clients:JSON.stringify(cIds.map(id=>({...cData[id]}))),
     client_names:JSON.stringify(cIds.filter(id=>!cData[id].cancelled).map(id=>cData[id].name).filter(Boolean)),
     is_amendment:!!amendId,
-    is_vienna:!!currentViennaType,
-    vienna_type:currentViennaType,
-    has_bus_ticket:!!currentViennaType,
-    tickets_ordered: currentViennaType ? (parseInt(document.getElementById('f-tickets-ordered')?.value)||0) : 0,
-    tickets_cancelled: currentViennaType ? (parseInt(document.getElementById('f-tickets-cancelled')?.value)||0) : 0,
+    is_vienna: document.getElementById('f-has-tickets')?.checked || !!currentViennaType,
+    vienna_type: currentViennaType,
+    has_bus_ticket: document.getElementById('f-has-tickets')?.checked || false,
+    tickets_ordered: document.getElementById('f-has-tickets')?.checked ? (parseInt(document.getElementById('f-tickets-ordered')?.value)||0) : 0,
+    tickets_cancelled: document.getElementById('f-has-tickets')?.checked ? (parseInt(document.getElementById('f-tickets-cancelled')?.value)||0) : 0,
     created_at:new Date().toISOString()
   };
   try {
@@ -1614,10 +1698,10 @@ async function saveHist(){
 
 function resetForm(){
   cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';window._stornoGuideEmail=null;currentViennaType='';
-  const btEl=document.getElementById('f-bus-ticket'); if(btEl) btEl.checked=false;
+  const btEl=document.getElementById('f-has-tickets'); if(btEl) btEl.checked=false;
+  const counts=document.getElementById('ticket-counts'); if(counts) counts.style.display='none';
   const toEl=document.getElementById('f-tickets-ordered'); if(toEl) toEl.value=2;
   const tcEl=document.getElementById('f-tickets-cancelled'); if(tcEl) tcEl.value=0;
-  updateTicketBox();
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
@@ -1648,7 +1732,7 @@ function openAmend(id, h){
   if(h.car_meeting){const el=document.getElementById('f-car')||document.getElementById('f-car2');if(el)el.value=h.car_meeting;}
   if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
   if(h.end2)document.getElementById('f-end2').value=h.end2||'';
-  const btEl=document.getElementById('f-bus-ticket'); if(btEl) btEl.checked=!!h.has_bus_ticket;
+  const btEl=document.getElementById('f-has-tickets'); if(btEl){ btEl.checked=!!h.has_bus_ticket; document.getElementById('ticket-counts').style.display=btEl.checked?'block':'none'; }
   const toEl=document.getElementById('f-tickets-ordered'); if(toEl) toEl.value=h.tickets_ordered||2;
   const tcEl=document.getElementById('f-tickets-cancelled'); if(tcEl) tcEl.value=h.tickets_cancelled||0;
   setTimeout(updateTicketBox,50);
@@ -1693,7 +1777,7 @@ async function openCopyNew(h){
   if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
   if(h.end2)document.getElementById('f-end2').value=h.end2||'';
   if(h.vienna_type) currentViennaType=h.vienna_type;
-  const btEl2=document.getElementById('f-bus-ticket'); if(btEl2) btEl2.checked=!!h.has_bus_ticket;
+  const btEl2=document.getElementById('f-has-tickets'); if(btEl2){ btEl2.checked=!!h.has_bus_ticket; document.getElementById('ticket-counts').style.display=btEl2.checked?'block':'none'; }
   const toEl2=document.getElementById('f-tickets-ordered'); if(toEl2) toEl2.value=h.tickets_ordered||2;
   const tcEl2=document.getElementById('f-tickets-cancelled'); if(tcEl2) tcEl2.value=h.tickets_cancelled||0;
   setTimeout(updateTicketBox,50);
@@ -2071,6 +2155,7 @@ function filterHistory(){
       </div>
       <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
         <button class="btn btn-w" style="font-size:12px;padding:5px 9px;" onclick="openAmend('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Zmena</button>
+        ${h.is_vienna||h.has_bus_ticket?`<button class="btn btn-w" style="font-size:12px;padding:5px 9px;background:#eaf4ee;border-color:#b2d8be;color:var(--accent);" onclick="openTicketEdit('${h.id}',${h.tickets_ordered||0},${h.tickets_cancelled||0})">🚌 Lístky</button>`:''}
         <button class="btn btn-p" style="font-size:12px;padding:5px 9px;" onclick="openCopyNew(JSON.parse(decodeURIComponent('${henc}')))">Kopirovat ako nova</button>
         <button class="btn btn-d" style="font-size:12px;padding:5px 9px;" onclick="openStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Storno</button>
         <button class="btn btn-w" style="font-size:12px;padding:5px 9px;background:#fff7e6;border-color:#f0a500;color:#b37700;" onclick="openPartialStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Ciastocne storno</button>
