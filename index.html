@@ -1338,10 +1338,19 @@ function renderCB(id){
     </div>`;
   const ex=document.getElementById('cb'+id);
   if(ex)ex.replaceWith(div);else document.getElementById('clist').appendChild(div);
+  autoUpdateTickets();
 }
 
 function updatePrices(){updateWalkPrice();updateCombo();if(svc==='gct-auto')updateGCTAutoPrice();}
-function chPax(id,d){const n=Math.max(1,(parseInt(cData[id].pax)||1)+d);cData[id].pax=n;document.getElementById('cpx'+id).textContent=n;updatePrices();}
+function chPax(id,d){const n=Math.max(1,(parseInt(cData[id].pax)||1)+d);cData[id].pax=n;document.getElementById('cpx'+id).textContent=n;updatePrices();autoUpdateTickets();}
+
+function autoUpdateTickets(){
+  const cb = document.getElementById('f-has-tickets');
+  if(!cb || !cb.checked) return;
+  const totalPax = cIds.filter(id=>!cData[id]?.cancelled).reduce((s,id)=>s+(parseInt(cData[id]?.pax)||1),0);
+  const el = document.getElementById('f-tickets-ordered');
+  if(el) el.value = totalPax * 2;
+}
 function cancelC(id){cData[id].cancelled=true;renderCB(id);updatePrices();}
 function reinstate(id){cData[id].cancelled=false;renderCB(id);updatePrices();}
 function removeC(id){cIds=cIds.filter(x=>x!==id);delete cData[id];const e=document.getElementById('cb'+id);if(e)e.remove();renum();updatePrices();}
@@ -1685,15 +1694,17 @@ async function saveHist(){
   try {
     if(amendId){
       const{error}=await SB.from('bookings').update(row).eq('id',amendId);
-      if(error){alert('Chyba ukladania: '+error.message);return;}
+      if(error){console.error('Supabase update error:',error); alert('Chyba ukladania: '+error.message);return;}
       alert('Zmena ulozena!');
     } else {
       window._lastSavedAt = Date.now();
-      const{error}=await SB.from('bookings').insert(row);
-      if(error){alert('Chyba ukladania: '+error.message);return;}
+      console.log('Saving row:', row);
+      const{data,error}=await SB.from('bookings').insert(row).select();
+      console.log('Insert result:', data, error);
+      if(error){console.error('Supabase insert error:',error); alert('Chyba ukladania: '+error.message);return;}
       alert('Ulozene do historie!');
     }
-  } catch(e){ alert('Chyba: '+e.message); }
+  } catch(e){ console.error('saveHist exception:',e); alert('Chyba: '+e.message); }
 }
 
 function resetForm(){
