@@ -2663,105 +2663,64 @@ async function loadViennaDashboard(){
 
   try {
     const {data, error} = await SB.from('bookings')
-      .select('date,clients,is_vienna,vienna_type,is_amendment')
-      .eq('is_vienna', true)
+      .select('date,has_bus_ticket,tickets_ordered,tickets_cancelled')
+      .eq('has_bus_ticket', true)
       .gte('date', year+'-01-01')
       .lte('date', year+'-12-31')
       .order('date', {ascending:true});
 
     if(error) throw error;
 
-    // Build monthly data structure
-    // months 0-11, types
-    const months = Array.from({length:12}, (_,i)=>({
-      month: i,
-      types: Object.fromEntries(VIENNA_TYPES.map(t=>[t,{tickets_ordered:0,tickets_cancelled:0}]))
-    }));
+    // Build monthly totals
+    const months = Array.from({length:12}, (_,i)=>({ordered:0, cancelled:0}));
 
     data.forEach(row=>{
-      if(!row.date || !row.vienna_type) return;
+      if(!row.date) return;
       const m = parseInt(row.date.split('-')[1]) - 1;
       if(m < 0 || m > 11) return;
-      const vt = row.vienna_type;
-      if(!months[m].types[vt]) return;
-
-      months[m].types[vt].tickets_ordered += parseInt(row.tickets_ordered)||0;
-      months[m].types[vt].tickets_cancelled += parseInt(row.tickets_cancelled)||0;
+      months[m].ordered += parseInt(row.tickets_ordered)||0;
+      months[m].cancelled += parseInt(row.tickets_cancelled)||0;
     });
 
-    // Render table
     const monthNames = ['Január','Február','Marec','Apríl','Máj','Jún','Júl','August','September','Október','November','December'];
-    
-    // Yearly totals
-    const yearTotals = Object.fromEntries(VIENNA_TYPES.map(t=>[t,{tickets_ordered:0,tickets_cancelled:0}]));
-    months.forEach(m=>{
-      VIENNA_TYPES.forEach(t=>{
-        yearTotals[t].tickets_ordered += m.types[t].tickets_ordered;
-        yearTotals[t].tickets_cancelled += m.types[t].tickets_cancelled;
-      });
-    });
+    const grandOrdered = months.reduce((s,m)=>s+m.ordered,0);
+    const grandCancelled = months.reduce((s,m)=>s+m.cancelled,0);
+    const grandUtilized = grandOrdered - grandCancelled;
 
     let html = `
     <div class="card" style="overflow-x:auto;padding:0;">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:650px;">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
         <thead>
           <tr style="background:var(--surface2);">
-            <th style="text-align:left;padding:10px 14px;border-bottom:1px solid var(--border2);font-weight:600;white-space:nowrap;">Mesiac</th>`;
-    VIENNA_TYPES.forEach(t=>{
-      html += `<th colspan="2" style="text-align:center;padding:10px 8px;border-bottom:1px solid var(--border2);border-left:1px solid var(--border2);font-weight:600;font-size:11px;white-space:nowrap;">${VIENNA_LABELS[t]}</th>`;
-    });
-    html += `<th colspan="2" style="text-align:center;padding:10px 8px;border-bottom:1px solid var(--border2);border-left:2px solid var(--border);font-weight:600;font-size:11px;">SPOLU</th></tr>
-          <tr style="background:var(--surface2);">
-            <th style="padding:4px 14px 8px;border-bottom:2px solid var(--border);"></th>`;
-    VIENNA_TYPES.forEach(()=>{
-      html += `<th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);border-left:1px solid var(--border2);text-align:center;font-size:10px;color:var(--accent);font-weight:600;">Objedn.</th>
-               <th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);text-align:center;font-size:10px;color:var(--danger);font-weight:600;">Storno</th>`;
-    });
-    html += `<th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);border-left:2px solid var(--border);text-align:center;font-size:10px;color:var(--accent);font-weight:600;">Objedn.</th>
-             <th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);text-align:center;font-size:10px;color:var(--danger);font-weight:600;">Storno</th>
-             <th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);text-align:center;font-size:10px;color:var(--text2);font-weight:600;">Využité</th></tr>
+            <th style="text-align:left;padding:11px 16px;border-bottom:2px solid var(--border);font-weight:600;">Mesiac</th>
+            <th style="text-align:center;padding:11px 16px;border-bottom:2px solid var(--border);color:var(--accent);font-weight:600;">Objednané lístky</th>
+            <th style="text-align:center;padding:11px 16px;border-bottom:2px solid var(--border);color:var(--danger);font-weight:600;">Stornované</th>
+            <th style="text-align:center;padding:11px 16px;border-bottom:2px solid var(--border);font-weight:600;">Využité</th>
+          </tr>
         </thead><tbody>`;
 
     months.forEach((m,i)=>{
-      const rowTotal = {tickets_ordered:0,tickets_cancelled:0};
-      VIENNA_TYPES.forEach(t=>{
-        rowTotal.tickets_ordered += m.types[t].tickets_ordered;
-        rowTotal.tickets_cancelled += m.types[t].tickets_cancelled;
-      });
-      const hasData = rowTotal.tickets_ordered > 0 || rowTotal.tickets_cancelled > 0;
+      const utilized = m.ordered - m.cancelled;
+      const hasData = m.ordered > 0 || m.cancelled > 0;
       html += `<tr style="border-bottom:1px solid var(--border2);${i%2===1?'background:var(--surface2);':''}">
-        <td style="padding:9px 14px;font-weight:500;white-space:nowrap;">${monthNames[i]}</td>`;
-      VIENNA_TYPES.forEach(t=>{
-        const b = m.types[t].tickets_ordered, c = m.types[t].tickets_cancelled;
-        html += `<td style="text-align:center;padding:9px 4px;border-left:1px solid var(--border2);${b>0?'font-weight:600;color:var(--accent);':'color:var(--text3);'}">${b||'—'}</td>
-                 <td style="text-align:center;padding:9px 4px;${c>0?'font-weight:600;color:var(--danger);':'color:var(--text3);'}">${c||'—'}</td>`;
-      });
-      const utilized = rowTotal.tickets_ordered - rowTotal.tickets_cancelled;
-      html += `<td style="text-align:center;padding:9px 8px;border-left:2px solid var(--border);${rowTotal.tickets_ordered>0?'font-weight:700;color:var(--accent);':'color:var(--text3);'}">${rowTotal.tickets_ordered||'—'}</td>
-               <td style="text-align:center;padding:9px 8px;${rowTotal.tickets_cancelled>0?'font-weight:700;color:var(--danger);':'color:var(--text3);'}">${rowTotal.tickets_cancelled||'—'}</td>
-               <td style="text-align:center;padding:9px 8px;${utilized>0?'font-weight:700;':'color:var(--text3);'}">${rowTotal.tickets_ordered>0?utilized:'—'}</td>
-               </tr>`;
+        <td style="padding:10px 16px;font-weight:500;">${monthNames[i]}</td>
+        <td style="text-align:center;padding:10px 16px;${m.ordered>0?'font-weight:700;color:var(--accent);':'color:var(--text3);'}">${m.ordered||'—'}</td>
+        <td style="text-align:center;padding:10px 16px;${m.cancelled>0?'font-weight:700;color:var(--danger);':'color:var(--text3);'}">${m.cancelled||'—'}</td>
+        <td style="text-align:center;padding:10px 16px;${hasData?'font-weight:700;':'color:var(--text3);'}">${hasData?utilized:'—'}</td>
+      </tr>`;
     });
 
-    // Totals row
-    const grandOrdered = VIENNA_TYPES.reduce((s,t)=>s+yearTotals[t].tickets_ordered,0);
-    const grandCancelled = VIENNA_TYPES.reduce((s,t)=>s+yearTotals[t].tickets_cancelled,0);
-    const grandUtilized = grandOrdered - grandCancelled;
-    html += `<tr style="background:var(--surface2);border-top:2px solid var(--border);font-weight:700;">
-      <td style="padding:11px 14px;">ROK ${year}</td>`;
-    VIENNA_TYPES.forEach(t=>{
-      html += `<td style="text-align:center;padding:11px 4px;border-left:1px solid var(--border2);color:var(--accent);">${yearTotals[t].tickets_ordered||'—'}</td>
-               <td style="text-align:center;padding:11px 4px;color:var(--danger);">${yearTotals[t].tickets_cancelled||'—'}</td>`;
-    });
-    html += `<td style="text-align:center;padding:11px 8px;border-left:2px solid var(--border);color:var(--accent);font-size:15px;">${grandOrdered||'—'}</td>
-             <td style="text-align:center;padding:11px 8px;color:var(--danger);font-size:15px;">${grandCancelled||'—'}</td>
-             <td style="text-align:center;padding:11px 8px;font-size:15px;">${grandOrdered>0?grandUtilized:'—'}</td>
-             </tr>`;
+    html += `<tr style="background:var(--surface2);border-top:2px solid var(--border);font-weight:700;font-size:15px;">
+      <td style="padding:13px 16px;">ROK ${year}</td>
+      <td style="text-align:center;padding:13px 16px;color:var(--accent);">${grandOrdered||'—'}</td>
+      <td style="text-align:center;padding:13px 16px;color:var(--danger);">${grandCancelled||'—'}</td>
+      <td style="text-align:center;padding:13px 16px;">${grandOrdered>0?grandUtilized:'—'}</td>
+    </tr>`;
 
     html += '</tbody></table></div>';
 
     // Store data for Excel export
-    window._viennaData = {months, yearTotals, year, monthNames};
+    window._viennaData = {months, year, monthNames};
     content.innerHTML = html;
 
   } catch(e) {
@@ -2771,36 +2730,16 @@ async function loadViennaDashboard(){
 
 async function exportViennaExcel(){
   if(!window._viennaData){ alert('Najprv načítaj dashboard.'); return; }
-  const {months, yearTotals, year, monthNames} = window._viennaData;
+  const {months, year, monthNames} = window._viennaData;
 
-  // Build CSV (Excel opens CSV perfectly)
-  const headers = ['Mesiac'];
-  VIENNA_TYPES.forEach(t=>{ headers.push(VIENNA_LABELS[t]+' Obj.', VIENNA_LABELS[t]+' Storno'); });
-  headers.push('Spolu Obj.','Spolu Storno','Využité');
-
-  const rows = [headers];
+  const rows = [['Mesiac','Objednané lístky','Stornované','Využité']];
   months.forEach((m,i)=>{
-    const row = [monthNames[i]];
-    let totalO=0, totalC=0;
-    VIENNA_TYPES.forEach(t=>{
-      row.push(m.types[t].tickets_ordered, m.types[t].tickets_cancelled);
-      totalO+=m.types[t].tickets_ordered; totalC+=m.types[t].tickets_cancelled;
-    });
-    row.push(totalO, totalC, totalO-totalC);
-    rows.push(row);
+    rows.push([monthNames[i], m.ordered, m.cancelled, m.ordered-m.cancelled]);
   });
+  const grandO = months.reduce((s,m)=>s+m.ordered,0);
+  const grandC = months.reduce((s,m)=>s+m.cancelled,0);
+  rows.push(['ROK '+year, grandO, grandC, grandO-grandC]);
 
-  // Totals row
-  const totRow = ['ROK '+year];
-  let grandO=0, grandC=0;
-  VIENNA_TYPES.forEach(t=>{
-    totRow.push(yearTotals[t].tickets_ordered, yearTotals[t].tickets_cancelled);
-    grandO+=yearTotals[t].tickets_ordered; grandC+=yearTotals[t].tickets_cancelled;
-  });
-  totRow.push(grandO, grandC, grandO-grandC);
-  rows.push(totRow);
-
-  // Convert to CSV with BOM for Excel UTF-8
   const csv = '\uFEFF' + rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
