@@ -255,6 +255,10 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
         <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
         História
       </button>
+      <button class="nb" onclick="nav('vienna');loadViennaDashboard()">
+        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l4-4 3 3 5-6"/><circle cx="13" cy="3" r="1.5"/></svg>
+        Vienna Bus
+      </button>
       <button class="nb" onclick="nav('settings')">
         <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>
         Nastavenia cien
@@ -659,6 +663,25 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
         Ulozit ceny
       </button>
       <div id="settings-msg" style="margin-top:12px;font-size:13px;color:var(--accent);display:none;">Ceny ulozene!</div>
+    </div>
+
+    <!-- VIENNA DASHBOARD -->
+    <div class="pg" id="pg-vienna">
+      <div class="ph"><h1>Vienna Bus — Prehľad lístkov</h1><p>Mesačný výpis objednaných a stornovaných lístkov.</p></div>
+
+      <div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div>
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">Rok</label>
+          <select id="vd-year" onchange="loadViennaDashboard()" style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:14px;background:var(--surface);"></select>
+        </div>
+        <div style="flex:1;"></div>
+        <button class="btn btn-p" onclick="exportViennaExcel()" style="display:flex;align-items:center;gap:8px;">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l3-3 2 2 5-6M2 14h12"/></svg>
+          Stiahnuť Excel
+        </button>
+      </div>
+
+      <div id="vd-content" style="margin-top:4px;"></div>
     </div>
 
   </main>
@@ -1088,6 +1111,7 @@ function nav(page){
 
 // ── Service type ──────────────────────────────────────────
 let svc='walk1';
+let currentViennaType = ''; // set during Bokun import, cleared on resetForm
 
 function setSvc(type){
   svc=type;
@@ -1504,6 +1528,7 @@ async function saveHist(){
   if(stornoId){ alert('Storno sa uklada automaticky — nie je potrebne ukladat znova.'); return; }
   const sel=document.getElementById('f-guide'),opt=sel.options[sel.selectedIndex];
   const senderKey=document.getElementById('f-sender').value;
+  const meetingVal = gv('f-meet');
   const row={
     date:gv('f-date'),
     guide_id:sel.value||null,
@@ -1512,7 +1537,7 @@ async function saveHist(){
     sender_name:senderKey?SENDERS[senderKey].name:'',
     service_type:svc,
     lang:getSvcLang(),
-    meeting:gv('f-meet'),
+    meeting:meetingVal,
     end_guide:gv('f-end-guide'),
     duration:gv('f-dur'),
     payment:gv('f-pay'),
@@ -1524,6 +1549,8 @@ async function saveHist(){
     clients:JSON.stringify(cIds.map(id=>({...cData[id]}))),
     client_names:JSON.stringify(cIds.filter(id=>!cData[id].cancelled).map(id=>cData[id].name).filter(Boolean)),
     is_amendment:!!amendId,
+    is_vienna:!!currentViennaType,
+    vienna_type:currentViennaType,
     created_at:new Date().toISOString()
   };
   try {
@@ -1541,7 +1568,7 @@ async function saveHist(){
 }
 
 function resetForm(){
-  cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';window._stornoGuideEmail=null;
+  cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';window._stornoGuideEmail=null;currentViennaType='';
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
@@ -2245,6 +2272,14 @@ function showLangPicker(langs, callback){
 function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk}){
   console.log('applyBokunData called, isViennaTour=', isViennaTour, 'isClassicalWalk=', isClassicalWalk, 'time=', time);
 
+  // Set vienna type globally for saving
+  if(isGCTVienna) currentViennaType='gct';
+  else if(isBeerTastingTour) currentViennaType='beer';
+  else if(isCoffeeCakeTour) currentViennaType='coffee_cake';
+  else if(isViennaTour) currentViennaType='lunch';
+  else if(isClassicalWalk) currentViennaType='classical_walk';
+  else currentViennaType='';
+
   // Step 1: Only reset clients if NOT in amend mode
   if(!amendId){
     cIds=[];cCnt=0;cData={};
@@ -2443,6 +2478,187 @@ async function savePrices(){
 }
 
 document.getElementById('gmodal').addEventListener('click',function(e){if(e.target===this)closeGM();});
+
+// ── Vienna Dashboard ──────────────────────────────────────
+const VIENNA_LABELS = {
+  lunch:'Lunch (P2)',
+  coffee_cake:'Coffee & Cake (P10)',
+  beer:'Beer Tasting (P19)',
+  gct:'Grand City Tour',
+  classical_walk:'Classical Walk (P1)'
+};
+const VIENNA_TYPES = ['lunch','coffee_cake','beer','gct','classical_walk'];
+
+function initViennaYearSelect(){
+  const sel = document.getElementById('vd-year');
+  if(!sel || sel.options.length > 0) return;
+  const yr = new Date().getFullYear();
+  for(let y = yr+1; y >= yr-2; y--){
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    if(y === yr) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+async function loadViennaDashboard(){
+  initViennaYearSelect();
+  const year = parseInt(document.getElementById('vd-year').value);
+  const content = document.getElementById('vd-content');
+  content.innerHTML = '<p style="color:var(--text2);padding:20px 0;">Načítavam...</p>';
+
+  try {
+    const {data, error} = await SB.from('bookings')
+      .select('date,clients,is_vienna,vienna_type,is_amendment')
+      .eq('is_vienna', true)
+      .gte('date', year+'-01-01')
+      .lte('date', year+'-12-31')
+      .order('date', {ascending:true});
+
+    if(error) throw error;
+
+    // Build monthly data structure
+    // months 0-11, types
+    const months = Array.from({length:12}, (_,i)=>({
+      month: i,
+      types: Object.fromEntries(VIENNA_TYPES.map(t=>[t,{booked:0,cancelled:0}]))
+    }));
+
+    data.forEach(row=>{
+      if(!row.date || !row.vienna_type) return;
+      const m = parseInt(row.date.split('-')[1]) - 1;
+      if(m < 0 || m > 11) return;
+      const vt = row.vienna_type;
+      if(!months[m].types[vt]) return;
+
+      let clients = [];
+      try { clients = JSON.parse(row.clients||'[]'); } catch{}
+
+      clients.forEach(c=>{
+        const pax = parseInt(c.pax)||1;
+        if(c.cancelled) months[m].types[vt].cancelled += pax;
+        else months[m].types[vt].booked += pax;
+      });
+    });
+
+    // Render table
+    const monthNames = ['Január','Február','Marec','Apríl','Máj','Jún','Júl','August','September','Október','November','December'];
+    
+    // Yearly totals
+    const yearTotals = Object.fromEntries(VIENNA_TYPES.map(t=>[t,{booked:0,cancelled:0}]));
+    months.forEach(m=>{
+      VIENNA_TYPES.forEach(t=>{
+        yearTotals[t].booked += m.types[t].booked;
+        yearTotals[t].cancelled += m.types[t].cancelled;
+      });
+    });
+
+    let html = `
+    <div class="card" style="overflow-x:auto;padding:0;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:650px;">
+        <thead>
+          <tr style="background:var(--surface2);">
+            <th style="text-align:left;padding:10px 14px;border-bottom:1px solid var(--border2);font-weight:600;white-space:nowrap;">Mesiac</th>`;
+    VIENNA_TYPES.forEach(t=>{
+      html += `<th colspan="2" style="text-align:center;padding:10px 8px;border-bottom:1px solid var(--border2);border-left:1px solid var(--border2);font-weight:600;font-size:11px;white-space:nowrap;">${VIENNA_LABELS[t]}</th>`;
+    });
+    html += `<th colspan="2" style="text-align:center;padding:10px 8px;border-bottom:1px solid var(--border2);border-left:2px solid var(--border);font-weight:600;font-size:11px;">SPOLU</th></tr>
+          <tr style="background:var(--surface2);">
+            <th style="padding:4px 14px 8px;border-bottom:2px solid var(--border);"></th>`;
+    VIENNA_TYPES.forEach(()=>{
+      html += `<th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);border-left:1px solid var(--border2);text-align:center;font-size:10px;color:var(--accent);font-weight:600;">Objedn.</th>
+               <th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);text-align:center;font-size:10px;color:var(--danger);font-weight:600;">Storno</th>`;
+    });
+    html += `<th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);border-left:2px solid var(--border);text-align:center;font-size:10px;color:var(--accent);font-weight:600;">Objedn.</th>
+             <th style="padding:4px 4px 8px;border-bottom:2px solid var(--border);text-align:center;font-size:10px;color:var(--danger);font-weight:600;">Storno</th></tr>
+        </thead><tbody>`;
+
+    months.forEach((m,i)=>{
+      const rowTotal = {booked:0,cancelled:0};
+      VIENNA_TYPES.forEach(t=>{
+        rowTotal.booked += m.types[t].booked;
+        rowTotal.cancelled += m.types[t].cancelled;
+      });
+      const hasData = rowTotal.booked > 0 || rowTotal.cancelled > 0;
+      const bg = hasData ? '' : 'color:var(--text3);';
+      html += `<tr style="border-bottom:1px solid var(--border2);${i%2===1?'background:var(--surface2);':''}">
+        <td style="padding:9px 14px;font-weight:500;white-space:nowrap;">${monthNames[i]}</td>`;
+      VIENNA_TYPES.forEach(t=>{
+        const b = m.types[t].booked, c = m.types[t].cancelled;
+        html += `<td style="text-align:center;padding:9px 4px;border-left:1px solid var(--border2);${b>0?'font-weight:600;color:var(--accent);':'color:var(--text3);'}">${b||'—'}</td>
+                 <td style="text-align:center;padding:9px 4px;${c>0?'font-weight:600;color:var(--danger);':'color:var(--text3);'}">${c||'—'}</td>`;
+      });
+      html += `<td style="text-align:center;padding:9px 8px;border-left:2px solid var(--border);${rowTotal.booked>0?'font-weight:700;color:var(--accent);':'color:var(--text3);'}">${rowTotal.booked||'—'}</td>
+               <td style="text-align:center;padding:9px 8px;${rowTotal.cancelled>0?'font-weight:700;color:var(--danger);':'color:var(--text3);'}">${rowTotal.cancelled||'—'}</td>
+               </tr>`;
+    });
+
+    // Totals row
+    const grandBooked = VIENNA_TYPES.reduce((s,t)=>s+yearTotals[t].booked,0);
+    const grandCancelled = VIENNA_TYPES.reduce((s,t)=>s+yearTotals[t].cancelled,0);
+    html += `<tr style="background:var(--surface2);border-top:2px solid var(--border);font-weight:700;">
+      <td style="padding:11px 14px;">ROK ${year}</td>`;
+    VIENNA_TYPES.forEach(t=>{
+      html += `<td style="text-align:center;padding:11px 4px;border-left:1px solid var(--border2);color:var(--accent);">${yearTotals[t].booked||'—'}</td>
+               <td style="text-align:center;padding:11px 4px;color:var(--danger);">${yearTotals[t].cancelled||'—'}</td>`;
+    });
+    html += `<td style="text-align:center;padding:11px 8px;border-left:2px solid var(--border);color:var(--accent);font-size:15px;">${grandBooked||'—'}</td>
+             <td style="text-align:center;padding:11px 8px;color:var(--danger);font-size:15px;">${grandCancelled||'—'}</td>
+             </tr>`;
+
+    html += '</tbody></table></div>';
+
+    // Store data for Excel export
+    window._viennaData = {months, yearTotals, year, monthNames};
+    content.innerHTML = html;
+
+  } catch(e) {
+    content.innerHTML = `<div style="color:var(--danger);padding:20px 0;">Chyba načítania: ${e.message}</div>`;
+  }
+}
+
+async function exportViennaExcel(){
+  if(!window._viennaData){ alert('Najprv načítaj dashboard.'); return; }
+  const {months, yearTotals, year, monthNames} = window._viennaData;
+
+  // Build CSV (Excel opens CSV perfectly)
+  const headers = ['Mesiac'];
+  VIENNA_TYPES.forEach(t=>{ headers.push(VIENNA_LABELS[t]+' Obj.', VIENNA_LABELS[t]+' Storno'); });
+  headers.push('Spolu Obj.','Spolu Storno');
+
+  const rows = [headers];
+  months.forEach((m,i)=>{
+    const row = [monthNames[i]];
+    let totalB=0, totalC=0;
+    VIENNA_TYPES.forEach(t=>{
+      row.push(m.types[t].booked, m.types[t].cancelled);
+      totalB+=m.types[t].booked; totalC+=m.types[t].cancelled;
+    });
+    row.push(totalB, totalC);
+    rows.push(row);
+  });
+
+  // Totals row
+  const totRow = ['ROK '+year];
+  let grandB=0, grandC=0;
+  VIENNA_TYPES.forEach(t=>{
+    totRow.push(yearTotals[t].booked, yearTotals[t].cancelled);
+    grandB+=yearTotals[t].booked; grandC+=yearTotals[t].cancelled;
+  });
+  totRow.push(grandB, grandC);
+  rows.push(totRow);
+
+  // Convert to CSV with BOM for Excel UTF-8
+  const csv = '\uFEFF' + rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `vienna_listky_${year}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="bootApp()" onerror="alert('Chyba načítania. Skontroluj internet.')"></script>
 <script>
