@@ -1788,9 +1788,14 @@ async function openCopyNew(h){
   if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
   if(h.end2)document.getElementById('f-end2').value=h.end2||'';
   if(h.vienna_type) currentViennaType=h.vienna_type;
-  const btEl2=document.getElementById('f-has-tickets'); if(btEl2){ btEl2.checked=!!h.has_bus_ticket; document.getElementById('ticket-counts').style.display=btEl2.checked?'block':'none'; }
-  const toEl2=document.getElementById('f-tickets-ordered'); if(toEl2) toEl2.value=h.tickets_ordered||2;
-  const tcEl2=document.getElementById('f-tickets-cancelled'); if(tcEl2) tcEl2.value=h.tickets_cancelled||0;
+  const btEl2=document.getElementById('f-has-tickets');
+  if(btEl2){
+    btEl2.checked=!!h.has_bus_ticket;
+    document.getElementById('ticket-counts').style.display=btEl2.checked?'block':'none';
+  }
+  // Reset ticket counts to 0 for new booking — will auto-recalculate from pax
+  const toEl2=document.getElementById('f-tickets-ordered'); if(toEl2) toEl2.value=0;
+  const tcEl2=document.getElementById('f-tickets-cancelled'); if(tcEl2) tcEl2.value=0;
   setTimeout(updateTicketBox,50);
   if(h.service_type)setSvc(h.service_type);
   if(h.lang){
@@ -1867,9 +1872,17 @@ async function openStorno(id, h){
   const clientParts = activeClients.map(c=>(c.name||'')+(c.pax?', '+c.pax+' pax':'')+(c.voucher?', '+c.voucher:'')).filter(Boolean);
   const subj = 'Storno objednavky, '+guideName+', '+date+(clientParts.length?', '+clientParts.slice(0,2).join(' | '):'');
 
-  await SB.from('bookings').update({is_storno:true, text:txt, subject:subj}).eq('id',id);
+  await SB.from('bookings').update({
+    is_storno:true,
+    text:txt,
+    subject:subj,
+    tickets_cancelled: h.has_bus_ticket ? (h.tickets_ordered||0) : 0
+  }).eq('id',id);
   const idx=historyCache.findIndex(x=>x.id===id);
-  if(idx!==-1) historyCache[idx].is_storno=true;
+  if(idx!==-1){
+    historyCache[idx].is_storno=true;
+    if(h.has_bus_ticket) historyCache[idx].tickets_cancelled = h.tickets_ordered||0;
+  }
 
   lastTxt=txt; lastSubj=subj;
   window._stornoGuideEmail=guideEmail;
@@ -2028,13 +2041,25 @@ async function confirmPartialStorno(){
     clients: JSON.stringify(updatedClients),
     client_names: JSON.stringify(remainingClients.map(c=>c.name).filter(Boolean)),
     text: txt,
-    subject: subj
+    subject: subj,
+    ...(h.has_bus_ticket ? {
+      tickets_cancelled: Math.min(
+        (h.tickets_ordered||0),
+        (parseInt(h.tickets_cancelled)||0) + stornoClients.reduce((s,c)=>(s+(parseInt(c.pax)||1)),0) * 2
+      )
+    } : {})
   }).eq('id', id);
 
   // Update cache
   const idx = historyCache.findIndex(x=>x.id===id);
   if(idx!==-1){
     historyCache[idx].clients = JSON.stringify(updatedClients);
+    if(h.has_bus_ticket){
+      historyCache[idx].tickets_cancelled = Math.min(
+        h.tickets_ordered||0,
+        (parseInt(h.tickets_cancelled)||0) + stornoClients.reduce((s,c)=>(s+(parseInt(c.pax)||1)),0) * 2
+      );
+    }
     historyCache[idx].client_names = JSON.stringify(remainingClients.map(c=>c.name).filter(Boolean));
   }
 
