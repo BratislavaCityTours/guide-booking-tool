@@ -2181,8 +2181,12 @@ function parseBokun(){
   else if(pl.includes('2 hour')||pl.includes('2-hour')) tourType='walk2';
   else if(pl.includes('3 hour')||pl.includes('3-hour')) tourType='walk3';
 
-  const isViennaTour = pl.includes('vienna')&&pl.includes('lunch');
-  const isClassicalWalk = pl.includes('classical')||pl.includes('122520p1');
+  const isViennaTour = pl.includes('vienna')&&pl.includes('lunch')
+    || txt.toLowerCase().includes('bratislava from vienna')
+    || txt.toLowerCase().includes('day trip from vienna');
+  const isClassicalWalk = pl.includes('classical')||pl.includes('122520p1')
+    || txt.toLowerCase().includes('classical walking tour')
+    || txt.toLowerCase().includes('122520p1');
 
   // Show warnings but continue
   if(warnings.length){
@@ -2384,12 +2388,4 @@ if('serviceWorker' in navigator && location.hostname.includes('github.io')){
 }
 // Online/Offline banner
 function updateOnlineStatus(){
-  const b=document.getElementById('offline-banner');
-  if(b) b.style.display=navigator.onLine?'none':'block';
-}
-window.addEventListener('online',updateOnlineStatus);
-window.addEventListener('offline',updateOnlineStatus);
-updateOnlineStatus();
-</script>
-</body>
-</html>
+  const b=document.getElementById('offline-ba
