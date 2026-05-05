@@ -2188,9 +2188,9 @@ function parseBokun(){
     || txt.toLowerCase().includes('coffee & cake')
     || txt.toLowerCase().includes('coffee and cake')
     || txt.toLowerCase().includes('122520p10');
-  const isClassicalWalk = pl.includes('classical')||pl.includes('122520p1')
+  const isClassicalWalk = !isCoffeeCakeTour && (pl.includes('classical')
     || txt.toLowerCase().includes('classical walking tour')
-    || txt.toLowerCase().includes('122520p1');
+    || /122520p1[^0]/i.test(txt) || /122520p1$/i.test(txt));
 
   // Show warnings but continue
   if(warnings.length){
@@ -2295,11 +2295,11 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
     } else if(isCoffeeCakeTour){
       document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
       const eg=document.getElementById('f-end-guide');
-      if(eg) eg.value='13:00';
+      if(eg) eg.value='13:00 v Pulitzer SNP';
       setTimeout(()=>{
         document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
         const eg2=document.getElementById('f-end-guide');
-        if(eg2) eg2.value='13:00';
+        if(eg2) eg2.value='13:00 v Pulitzer SNP';
       }, 200);
     } else if(isClassicalWalk){
       document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
