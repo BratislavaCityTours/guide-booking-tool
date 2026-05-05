@@ -2127,6 +2127,11 @@ function parseBokun(){
   const paxRaw = get('PAX');
   const guidedLang = get('Guided languages');
   const rate = get('Rate');
+  const extras = get('Extras');
+  // Also check for lunch in full text after Extras section
+  const hasLunch = extras.toLowerCase().includes('lunch')
+    || txt.toLowerCase().includes('traditional slovakian')
+    || /extras[\s\S]{0,300}lunch/i.test(txt);
 
   // Track what was found and what is missing
   const warnings = [];
@@ -2188,7 +2193,12 @@ function parseBokun(){
     || txt.toLowerCase().includes('coffee & cake')
     || txt.toLowerCase().includes('coffee and cake')
     || txt.toLowerCase().includes('122520p10');
-  const isClassicalWalk = !isCoffeeCakeTour && (pl.includes('classical')
+  const isBeerTastingTour = pl.includes('beer')&&pl.includes('tasting')
+    || txt.toLowerCase().includes('beer tasting')
+    || txt.toLowerCase().includes('122520p19');
+  const isGCTVienna = (pl.includes('grand city tour')||pl.includes('gct'))
+    && (pl.includes('vienna')||txt.toLowerCase().includes('bratislava from vienna by bus with grand'));
+  const isClassicalWalk = !isCoffeeCakeTour && !isBeerTastingTour && (pl.includes('classical')
     || txt.toLowerCase().includes('classical walking tour')
     || /122520p1[^0]/i.test(txt) || /122520p1$/i.test(txt));
 
@@ -2200,9 +2210,9 @@ function parseBokun(){
     setTimeout(()=>{
       document.getElementById('bokun-modal').remove();
       if(langs.length > 1){
-        showLangPicker(langs,(l)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:l,tourType,isViennaTour,isCoffeeCakeTour,isClassicalWalk}));
+        showLangPicker(langs,(l)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:l,tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk}));
       } else {
-        applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isCoffeeCakeTour,isClassicalWalk});
+        applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk});
       }
     }, 2500);
     return;
@@ -2210,9 +2220,9 @@ function parseBokun(){
 
   document.getElementById('bokun-modal').remove();
   if(langs.length > 1){
-    showLangPicker(langs,(chosenLang)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:chosenLang,tourType,isViennaTour,isCoffeeCakeTour,isClassicalWalk}));
+    showLangPicker(langs,(chosenLang)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:chosenLang,tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk}));
   } else {
-    applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isCoffeeCakeTour,isClassicalWalk});
+    applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk});
   }
 }
 
@@ -2232,7 +2242,7 @@ function showLangPicker(langs, callback){
   modal.addEventListener('click',e=>{ if(e.target===modal) modal.remove(); });
 }
 
-function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour,isCoffeeCakeTour,isClassicalWalk}){
+function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk}){
   console.log('applyBokunData called, isViennaTour=', isViennaTour, 'isClassicalWalk=', isClassicalWalk, 'time=', time);
 
   // Step 1: Only reset clients if NOT in amend mode
@@ -2270,6 +2280,23 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
         cData[newId].note='klienti maju coffee & cake';
       }
     }
+    if(isBeerTastingTour){
+      const ntEl=document.getElementById('cno'+newId);
+      if(ntEl){
+        ntEl.value='klienti maju v Pulitzer SNP polievku & Halusky, poprosim pocas sprevadzania im ukazat Sladovnu maju tam samostatne o 14:30 beer tasting, 3 vzorky piva & praclik';
+        cData[newId].note='klienti maju v Pulitzer SNP polievku & Halusky, poprosim pocas sprevadzania im ukazat Sladovnu maju tam samostatne o 14:30 beer tasting, 3 vzorky piva & praclik';
+      }
+    }
+    if(isGCTVienna){
+      const ntEl=document.getElementById('cno'+newId);
+      if(ntEl){
+        const gctNote = hasLunch
+          ? 'klienti maju 3 hod Bratislava Grand City Tour, o 15:00 v Pulitzer SNP polievku & halusky'
+          : 'klient ma 3 hod Bratislava Grand City Tour';
+        ntEl.value=gctNote;
+        cData[newId].note=gctNote;
+      }
+    }
     if(isClassicalWalk){
       const ntEl=document.getElementById('cno'+newId);
       if(ntEl){
@@ -2292,7 +2319,28 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
         document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
         document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
       }, 200);
+    } else if(isGCTVienna){
+      const endVal = hasLunch ? '15:00 Pulitzer SNP' : '15:00';
+      document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
+      document.getElementById('f-end-guide').value=endVal;
+      const carEl=document.getElementById('f-car')||document.getElementById('f-car2');
+      if(carEl) carEl.value='13:15 pred Quo Vadis';
+      setTimeout(()=>{
+        document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
+        document.getElementById('f-end-guide').value=endVal;
+        const carEl2=document.getElementById('f-car')||document.getElementById('f-car2');
+        if(carEl2) carEl2.value='13:15 pred Quo Vadis';
+      }, 200);
     } else if(isCoffeeCakeTour){
+      document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
+      const eg=document.getElementById('f-end-guide');
+      if(eg) eg.value='13:00 v Pulitzer SNP';
+      setTimeout(()=>{
+        document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
+        const eg2=document.getElementById('f-end-guide');
+        if(eg2) eg2.value='13:00 v Pulitzer SNP';
+      }, 200);
+    } else if(isBeerTastingTour){
       document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
       const eg=document.getElementById('f-end-guide');
       if(eg) eg.value='13:00 v Pulitzer SNP';
