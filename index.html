@@ -255,10 +255,6 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
         <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
         História
       </button>
-      <button class="nb" onclick="nav('vienna');loadViennaDashboard()">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l4-4 3 3 5-6"/><circle cx="13" cy="3" r="1.5"/></svg>
-        Vienna Bus
-      </button>
       <button class="nb" onclick="nav('settings')">
         <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>
         Nastavenia cien
@@ -523,39 +519,9 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
 
         <label>Platba</label>
         <input type="text" id="f-pay" value="FAKTURA NA ETRAVEL">
-
-        <div id="vienna-ticket-box" style="margin-top:14px;padding:14px;background:#eaf4ee;border-radius:var(--r);border:1px solid #b2d8be;">
-          <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="toggleTicketSection()">
-            <input type="checkbox" id="f-has-tickets" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);" onchange="toggleTicketSection()">
-            <div>
-              <div style="font-size:13px;font-weight:600;color:var(--accent);">🚌 Zahŕňa lístky na Vienna bus</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:1px;">Interné — nezobrazí sa v emaili guidovi</div>
-            </div>
-          </div>
-          <div id="ticket-counts" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #b2d8be;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <div>
-                <label style="font-size:12px;color:var(--text2);">Objednané lístky</label>
-                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-                  <button type="button" onclick="ticketAdj('f-tickets-ordered',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">−</button>
-                  <input type="number" id="f-tickets-ordered" min="0" value="2" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
-                  <button type="button" onclick="ticketAdj('f-tickets-ordered',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">+</button>
-                </div>
-              </div>
-              <div>
-                <label style="font-size:12px;color:var(--text2);">Stornované lístky</label>
-                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-                  <button type="button" onclick="ticketAdj('f-tickets-cancelled',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">−</button>
-                  <input type="number" id="f-tickets-cancelled" min="0" value="0" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
-                  <button type="button" onclick="ticketAdj('f-tickets-cancelled',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">+</button>
-                </div>
-              </div>
-            </div>
-            <div style="margin-top:8px;font-size:11px;color:var(--text2);">No-show = stornovaný 1 spiatočný lístok</div>
-          </div>
-        </div>
       </div>
 
+      <!-- Guide -->
       <div class="card">
         <div class="ct">Guide (príjemca emailu)</div>
         <div class="gsr">
@@ -693,25 +659,6 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
         Ulozit ceny
       </button>
       <div id="settings-msg" style="margin-top:12px;font-size:13px;color:var(--accent);display:none;">Ceny ulozene!</div>
-    </div>
-
-    <!-- VIENNA DASHBOARD -->
-    <div class="pg" id="pg-vienna">
-      <div class="ph"><h1>Vienna Bus — Prehľad lístkov</h1><p>Mesačný výpis objednaných a stornovaných lístkov.</p></div>
-
-      <div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-        <div>
-          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">Rok</label>
-          <select id="vd-year" onchange="loadViennaDashboard()" style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-family:var(--font);font-size:14px;background:var(--surface);"></select>
-        </div>
-        <div style="flex:1;"></div>
-        <button class="btn btn-p" onclick="exportViennaExcel()" style="display:flex;align-items:center;gap:8px;">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l3-3 2 2 5-6M2 14h12"/></svg>
-          Stiahnuť Excel
-        </button>
-      </div>
-
-      <div id="vd-content" style="margin-top:4px;"></div>
     </div>
 
   </main>
@@ -1141,7 +1088,6 @@ function nav(page){
 
 // ── Service type ──────────────────────────────────────────
 let svc='walk1';
-let currentViennaType = ''; // set during Bokun import, cleared on resetForm
 
 function setSvc(type){
   svc=type;
@@ -1338,19 +1284,10 @@ function renderCB(id){
     </div>`;
   const ex=document.getElementById('cb'+id);
   if(ex)ex.replaceWith(div);else document.getElementById('clist').appendChild(div);
-  autoUpdateTickets();
 }
 
 function updatePrices(){updateWalkPrice();updateCombo();if(svc==='gct-auto')updateGCTAutoPrice();}
-function chPax(id,d){const n=Math.max(1,(parseInt(cData[id].pax)||1)+d);cData[id].pax=n;document.getElementById('cpx'+id).textContent=n;updatePrices();autoUpdateTickets();}
-
-function autoUpdateTickets(){
-  const cb = document.getElementById('f-has-tickets');
-  if(!cb || !cb.checked) return;
-  const totalPax = cIds.filter(id=>!cData[id]?.cancelled).reduce((s,id)=>s+(parseInt(cData[id]?.pax)||1),0);
-  const el = document.getElementById('f-tickets-ordered');
-  if(el) el.value = totalPax * 2;
-}
+function chPax(id,d){const n=Math.max(1,(parseInt(cData[id].pax)||1)+d);cData[id].pax=n;document.getElementById('cpx'+id).textContent=n;updatePrices();}
 function cancelC(id){cData[id].cancelled=true;renderCB(id);updatePrices();}
 function reinstate(id){cData[id].cancelled=false;renderCB(id);updatePrices();}
 function removeC(id){cIds=cIds.filter(x=>x!==id);delete cData[id];const e=document.getElementById('cb'+id);if(e)e.remove();renum();updatePrices();}
@@ -1358,102 +1295,6 @@ function renum(){cIds.forEach((id,i)=>{const b=document.getElementById('cbn'+id)
 
 // ── Generate ──────────────────────────────────────────────
 let amendId=null,stornoId=null,lastTxt='',lastSubj='';
-function ticketAdj(id, delta){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.value = Math.max(0, (parseInt(el.value)||0) + delta);
-}
-
-async function openTicketEdit(bookingId, ordered, cancelled){
-  const modal = document.createElement('div');
-  modal.id = 'ticket-edit-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
-  modal.innerHTML = `
-    <div style="background:var(--bg);border-radius:var(--rl);padding:28px;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
-      <h3 style="margin:0 0 6px;font-size:16px;">🚌 Úprava lístkov</h3>
-      <p style="font-size:13px;color:var(--text2);margin:0 0 18px;">Zmeny sa uložia priamo do histórie.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
-        <div>
-          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Objednané lístky</label>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <button onclick="teAdj('te-ordered',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">−</button>
-            <input type="number" id="te-ordered" value="${ordered}" min="0" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
-            <button onclick="teAdj('te-ordered',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">+</button>
-          </div>
-        </div>
-        <div>
-          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">Stornované lístky</label>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <button onclick="teAdj('te-cancelled',-1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">−</button>
-            <input type="number" id="te-cancelled" value="${cancelled}" min="0" style="width:52px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--font);">
-            <button onclick="teAdj('te-cancelled',1)" style="width:30px;height:30px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);font-size:16px;cursor:pointer;">+</button>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;">
-        <button class="btn btn-p btn-fw" onclick="saveTicketEdit('${bookingId}')">Uložiť</button>
-        <button class="btn btn-g" onclick="document.getElementById('ticket-edit-modal').remove()">Zrušiť</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
-}
-
-function teAdj(id, delta){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.value = Math.max(0, (parseInt(el.value)||0) + delta);
-}
-
-async function saveTicketEdit(bookingId){
-  const ordered = parseInt(document.getElementById('te-ordered')?.value)||0;
-  const cancelled = parseInt(document.getElementById('te-cancelled')?.value)||0;
-  try {
-    const {error} = await SB.from('bookings').update({
-      tickets_ordered: ordered,
-      tickets_cancelled: cancelled,
-      has_bus_ticket: true,
-      is_vienna: true
-    }).eq('id', bookingId);
-    if(error) throw error;
-    document.getElementById('ticket-edit-modal').remove();
-    // Update cache
-    const idx = historyCache.findIndex(h=>h.id===bookingId);
-    if(idx>=0){ historyCache[idx].tickets_ordered=ordered; historyCache[idx].tickets_cancelled=cancelled; }
-    renderHistory();
-    showNotif('✅ Lístky uložené', ordered+' objednaných · '+cancelled+' stornovaných', null);
-  } catch(e) {
-    alert('Chyba: '+e.message);
-  }
-}
-
-
-
-function toggleTicketSection(){
-  const cb = document.getElementById('f-has-tickets');
-  const counts = document.getElementById('ticket-counts');
-  if(!cb || !counts) return;
-  counts.style.display = cb.checked ? 'block' : 'none';
-  if(cb.checked){
-    // Auto-set ordered = pax*2 if still at default 2
-    const ordered = document.getElementById('f-tickets-ordered');
-    if(ordered && ordered.value == '2'){
-      const totalPax = cIds.filter(id=>!cData[id]?.cancelled).reduce((s,id)=>s+(parseInt(cData[id]?.pax)||1),0);
-      if(totalPax > 1) ordered.value = totalPax * 2;
-    }
-  }
-}
-
-function updateTicketBox(){
-  const cb = document.getElementById('f-has-tickets');
-  if(!cb) return;
-  // If vienna type set via Bokun import, auto-check
-  if(currentViennaType && !cb.checked){
-    cb.checked = true;
-    toggleTicketSection();
-  }
-}
-
 function gv(id){const e=document.getElementById(id);return e?e.value.trim():'';}
 function fmtDate(d){if(!d)return'';const[y,m,day]=d.split('-');return`${day}.${m}.${y}`;}
 function updateDateDisplay(){
@@ -1663,7 +1504,6 @@ async function saveHist(){
   if(stornoId){ alert('Storno sa uklada automaticky — nie je potrebne ukladat znova.'); return; }
   const sel=document.getElementById('f-guide'),opt=sel.options[sel.selectedIndex];
   const senderKey=document.getElementById('f-sender').value;
-  const meetingVal = gv('f-meet');
   const row={
     date:gv('f-date'),
     guide_id:sel.value||null,
@@ -1672,7 +1512,7 @@ async function saveHist(){
     sender_name:senderKey?SENDERS[senderKey].name:'',
     service_type:svc,
     lang:getSvcLang(),
-    meeting:meetingVal,
+    meeting:gv('f-meet'),
     end_guide:gv('f-end-guide'),
     duration:gv('f-dur'),
     payment:gv('f-pay'),
@@ -1684,35 +1524,24 @@ async function saveHist(){
     clients:JSON.stringify(cIds.map(id=>({...cData[id]}))),
     client_names:JSON.stringify(cIds.filter(id=>!cData[id].cancelled).map(id=>cData[id].name).filter(Boolean)),
     is_amendment:!!amendId,
-    is_vienna: document.getElementById('f-has-tickets')?.checked || !!currentViennaType,
-    vienna_type: currentViennaType,
-    has_bus_ticket: document.getElementById('f-has-tickets')?.checked || false,
-    tickets_ordered: document.getElementById('f-has-tickets')?.checked ? (parseInt(document.getElementById('f-tickets-ordered')?.value)||0) : 0,
-    tickets_cancelled: document.getElementById('f-has-tickets')?.checked ? (parseInt(document.getElementById('f-tickets-cancelled')?.value)||0) : 0,
     created_at:new Date().toISOString()
   };
   try {
     if(amendId){
       const{error}=await SB.from('bookings').update(row).eq('id',amendId);
-      if(error){console.error('Supabase update error:',error); alert('Chyba ukladania: '+error.message);return;}
+      if(error){alert('Chyba ukladania: '+error.message);return;}
       alert('Zmena ulozena!');
     } else {
       window._lastSavedAt = Date.now();
-      console.log('Saving row:', row);
-      const{data,error}=await SB.from('bookings').insert(row).select();
-      console.log('Insert result:', data, error);
-      if(error){console.error('Supabase insert error:',error); alert('Chyba ukladania: '+error.message);return;}
+      const{error}=await SB.from('bookings').insert(row);
+      if(error){alert('Chyba ukladania: '+error.message);return;}
       alert('Ulozene do historie!');
     }
-  } catch(e){ console.error('saveHist exception:',e); alert('Chyba: '+e.message); }
+  } catch(e){ alert('Chyba: '+e.message); }
 }
 
 function resetForm(){
-  cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';window._stornoGuideEmail=null;currentViennaType='';
-  const btEl=document.getElementById('f-has-tickets'); if(btEl) btEl.checked=false;
-  const counts=document.getElementById('ticket-counts'); if(counts) counts.style.display='none';
-  const toEl=document.getElementById('f-tickets-ordered'); if(toEl) toEl.value=2;
-  const tcEl=document.getElementById('f-tickets-cancelled'); if(tcEl) tcEl.value=0;
+  cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';window._stornoGuideEmail=null;
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
@@ -1743,11 +1572,6 @@ function openAmend(id, h){
   if(h.car_meeting){const el=document.getElementById('f-car')||document.getElementById('f-car2');if(el)el.value=h.car_meeting;}
   if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
   if(h.end2)document.getElementById('f-end2').value=h.end2||'';
-  const btEl=document.getElementById('f-has-tickets'); if(btEl){ btEl.checked=!!h.has_bus_ticket; document.getElementById('ticket-counts').style.display=btEl.checked?'block':'none'; }
-  const toEl=document.getElementById('f-tickets-ordered'); if(toEl) toEl.value=h.tickets_ordered||2;
-  const tcEl=document.getElementById('f-tickets-cancelled'); if(tcEl) tcEl.value=h.tickets_cancelled||0;
-  setTimeout(updateTicketBox,50);
-  if(h.vienna_type) currentViennaType=h.vienna_type;
   if(h.sender_key){document.getElementById('f-sender').value=h.sender_key;onSender();}
   if(h.service_type)setSvc(h.service_type);
   if(h.lang){
@@ -1787,23 +1611,19 @@ async function openCopyNew(h){
   if(h.car_meeting){const el=document.getElementById('f-car')||document.getElementById('f-car2');if(el)el.value=h.car_meeting;}
   if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
   if(h.end2)document.getElementById('f-end2').value=h.end2||'';
-  if(h.vienna_type) currentViennaType=h.vienna_type;
-  const btEl2=document.getElementById('f-has-tickets');
-  if(btEl2){
-    btEl2.checked=!!h.has_bus_ticket;
-    document.getElementById('ticket-counts').style.display=btEl2.checked?'block':'none';
-  }
-  // Reset ticket counts to 0 for new booking — will auto-recalculate from pax
-  const toEl2=document.getElementById('f-tickets-ordered'); if(toEl2) toEl2.value=0;
-  const tcEl2=document.getElementById('f-tickets-cancelled'); if(tcEl2) tcEl2.value=0;
-  setTimeout(updateTicketBox,50);
+  if(h.sender_key){document.getElementById('f-sender').value=h.sender_key;onSender();}
   if(h.service_type)setSvc(h.service_type);
   if(h.lang){
     const lselId={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
     const lsel=document.getElementById(lselId[h.service_type]||'w1-lang');
     if(lsel)lsel.value=h.lang;
   }
-  refreshGuides().then(()=>{if(h.guide_id){document.getElementById('f-guide').value=h.guide_id;onGuide();}});
+  refreshGuides().then(()=>{
+    // Clear guide — user must select new one
+    document.getElementById('f-guide').value='';
+    document.getElementById('guide-search').value='';
+    document.getElementById('guide-info').style.display='none';
+  });
   let cl=[];try{cl=JSON.parse(h.clients||'[]');}catch{}
   if(cl.length)cl.forEach(c=>addClient(c));else addClient();
   document.getElementById('abanner').style.display='none';
@@ -1872,17 +1692,9 @@ async function openStorno(id, h){
   const clientParts = activeClients.map(c=>(c.name||'')+(c.pax?', '+c.pax+' pax':'')+(c.voucher?', '+c.voucher:'')).filter(Boolean);
   const subj = 'Storno objednavky, '+guideName+', '+date+(clientParts.length?', '+clientParts.slice(0,2).join(' | '):'');
 
-  await SB.from('bookings').update({
-    is_storno:true,
-    text:txt,
-    subject:subj,
-    tickets_cancelled: h.has_bus_ticket ? (h.tickets_ordered||0) : 0
-  }).eq('id',id);
+  await SB.from('bookings').update({is_storno:true, text:txt, subject:subj}).eq('id',id);
   const idx=historyCache.findIndex(x=>x.id===id);
-  if(idx!==-1){
-    historyCache[idx].is_storno=true;
-    if(h.has_bus_ticket) historyCache[idx].tickets_cancelled = h.tickets_ordered||0;
-  }
+  if(idx!==-1) historyCache[idx].is_storno=true;
 
   lastTxt=txt; lastSubj=subj;
   window._stornoGuideEmail=guideEmail;
@@ -2041,25 +1853,13 @@ async function confirmPartialStorno(){
     clients: JSON.stringify(updatedClients),
     client_names: JSON.stringify(remainingClients.map(c=>c.name).filter(Boolean)),
     text: txt,
-    subject: subj,
-    ...(h.has_bus_ticket ? {
-      tickets_cancelled: Math.min(
-        (h.tickets_ordered||0),
-        (parseInt(h.tickets_cancelled)||0) + stornoClients.reduce((s,c)=>(s+(parseInt(c.pax)||1)),0) * 2
-      )
-    } : {})
+    subject: subj
   }).eq('id', id);
 
   // Update cache
   const idx = historyCache.findIndex(x=>x.id===id);
   if(idx!==-1){
     historyCache[idx].clients = JSON.stringify(updatedClients);
-    if(h.has_bus_ticket){
-      historyCache[idx].tickets_cancelled = Math.min(
-        h.tickets_ordered||0,
-        (parseInt(h.tickets_cancelled)||0) + stornoClients.reduce((s,c)=>(s+(parseInt(c.pax)||1)),0) * 2
-      );
-    }
     historyCache[idx].client_names = JSON.stringify(remainingClients.map(c=>c.name).filter(Boolean));
   }
 
@@ -2191,7 +1991,6 @@ function filterHistory(){
       </div>
       <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
         <button class="btn btn-w" style="font-size:12px;padding:5px 9px;" onclick="openAmend('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Zmena</button>
-        ${h.is_vienna||h.has_bus_ticket?`<button class="btn btn-w" style="font-size:12px;padding:5px 9px;background:#eaf4ee;border-color:#b2d8be;color:var(--accent);" onclick="openTicketEdit('${h.id}',${h.tickets_ordered||0},${h.tickets_cancelled||0})">🚌 Lístky</button>`:''}
         <button class="btn btn-p" style="font-size:12px;padding:5px 9px;" onclick="openCopyNew(JSON.parse(decodeURIComponent('${henc}')))">Kopirovat ako nova</button>
         <button class="btn btn-d" style="font-size:12px;padding:5px 9px;" onclick="openStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Storno</button>
         <button class="btn btn-w" style="font-size:12px;padding:5px 9px;background:#fff7e6;border-color:#f0a500;color:#b37700;" onclick="openPartialStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Ciastocne storno</button>
@@ -2333,11 +2132,6 @@ function parseBokun(){
   const paxRaw = get('PAX');
   const guidedLang = get('Guided languages');
   const rate = get('Rate');
-  const extras = get('Extras');
-  // Also check for lunch in full text after Extras section
-  const hasLunch = extras.toLowerCase().includes('lunch')
-    || txt.toLowerCase().includes('traditional slovakian')
-    || /extras[\s\S]{0,300}lunch/i.test(txt);
 
   // Track what was found and what is missing
   const warnings = [];
@@ -2392,21 +2186,7 @@ function parseBokun(){
   else if(pl.includes('2 hour')||pl.includes('2-hour')) tourType='walk2';
   else if(pl.includes('3 hour')||pl.includes('3-hour')) tourType='walk3';
 
-  const isViennaTour = pl.includes('vienna')&&pl.includes('lunch')
-    || txt.toLowerCase().includes('bratislava from vienna')&&txt.toLowerCase().includes('lunch')
-    || txt.toLowerCase().includes('day trip from vienna')&&txt.toLowerCase().includes('lunch');
-  const isCoffeeCakeTour = pl.includes('coffee')&&pl.includes('cake')
-    || txt.toLowerCase().includes('coffee & cake')
-    || txt.toLowerCase().includes('coffee and cake')
-    || txt.toLowerCase().includes('122520p10');
-  const isBeerTastingTour = pl.includes('beer')&&pl.includes('tasting')
-    || txt.toLowerCase().includes('beer tasting')
-    || txt.toLowerCase().includes('122520p19');
-  const isGCTVienna = (pl.includes('grand city tour')||pl.includes('gct'))
-    && (pl.includes('vienna')||txt.toLowerCase().includes('bratislava from vienna by bus with grand'));
-  const isClassicalWalk = !isCoffeeCakeTour && !isBeerTastingTour && (pl.includes('classical')
-    || txt.toLowerCase().includes('classical walking tour')
-    || /122520p1[^0]/i.test(txt) || /122520p1$/i.test(txt));
+  const isViennaTour = pl.includes('vienna')&&pl.includes('lunch');
 
   // Show warnings but continue
   if(warnings.length){
@@ -2416,9 +2196,9 @@ function parseBokun(){
     setTimeout(()=>{
       document.getElementById('bokun-modal').remove();
       if(langs.length > 1){
-        showLangPicker(langs,(l)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:l,tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk}));
+        showLangPicker(langs,(l)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:l,tourType,isViennaTour}));
       } else {
-        applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk});
+        applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour});
       }
     }, 2500);
     return;
@@ -2426,9 +2206,9 @@ function parseBokun(){
 
   document.getElementById('bokun-modal').remove();
   if(langs.length > 1){
-    showLangPicker(langs,(chosenLang)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:chosenLang,tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk}));
+    showLangPicker(langs,(chosenLang)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:chosenLang,tourType,isViennaTour}));
   } else {
-    applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk});
+    applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour});
   }
 }
 
@@ -2448,16 +2228,8 @@ function showLangPicker(langs, callback){
   modal.addEventListener('click',e=>{ if(e.target===modal) modal.remove(); });
 }
 
-function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour,isCoffeeCakeTour,isBeerTastingTour,isGCTVienna,hasLunch,isClassicalWalk}){
-  console.log('applyBokunData called, isViennaTour=', isViennaTour, 'isClassicalWalk=', isClassicalWalk, 'time=', time);
-
-  // Set vienna type globally for saving
-  if(isGCTVienna) currentViennaType='gct';
-  else if(isBeerTastingTour) currentViennaType='beer';
-  else if(isCoffeeCakeTour) currentViennaType='coffee_cake';
-  else if(isViennaTour) currentViennaType='lunch';
-  else if(isClassicalWalk) currentViennaType='classical_walk';
-  else currentViennaType='';
+function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour}){
+  console.log('applyBokunData called, isViennaTour=', isViennaTour, 'time=', time);
 
   // Step 1: Only reset clients if NOT in amend mode
   if(!amendId){
@@ -2487,37 +2259,6 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
         cData[newId].note='klienti maju polievku & halusky v Pulitzer SNP';
       }
     }
-    if(isCoffeeCakeTour){
-      const ntEl=document.getElementById('cno'+newId);
-      if(ntEl){
-        ntEl.value='klienti maju coffee & cake';
-        cData[newId].note='klienti maju coffee & cake';
-      }
-    }
-    if(isBeerTastingTour){
-      const ntEl=document.getElementById('cno'+newId);
-      if(ntEl){
-        ntEl.value='klienti maju v Pulitzer SNP polievku & Halusky, poprosim pocas sprevadzania im ukazat Sladovnu maju tam samostatne o 14:30 beer tasting, 3 vzorky piva & praclik';
-        cData[newId].note='klienti maju v Pulitzer SNP polievku & Halusky, poprosim pocas sprevadzania im ukazat Sladovnu maju tam samostatne o 14:30 beer tasting, 3 vzorky piva & praclik';
-      }
-    }
-    if(isGCTVienna){
-      const ntEl=document.getElementById('cno'+newId);
-      if(ntEl){
-        const gctNote = hasLunch
-          ? 'klienti maju 3 hod Bratislava Grand City Tour, o 15:00 v Pulitzer SNP polievku & halusky'
-          : 'klient ma 3 hod Bratislava Grand City Tour';
-        ntEl.value=gctNote;
-        cData[newId].note=gctNote;
-      }
-    }
-    if(isClassicalWalk){
-      const ntEl=document.getElementById('cno'+newId);
-      if(ntEl){
-        ntEl.value='klienti maju len walking tour';
-        cData[newId].note='klienti maju len walking tour';
-      }
-    }
   }
 
   // Step 3: Set date/time fields last
@@ -2533,51 +2274,11 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
         document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
         document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
       }, 200);
-    } else if(isGCTVienna){
-      const endVal = hasLunch ? '15:00 Pulitzer SNP' : '15:00';
-      document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
-      document.getElementById('f-end-guide').value=endVal;
-      const carEl=document.getElementById('f-car')||document.getElementById('f-car2');
-      if(carEl) carEl.value='13:15 pred Quo Vadis';
-      setTimeout(()=>{
-        document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
-        document.getElementById('f-end-guide').value=endVal;
-        const carEl2=document.getElementById('f-car')||document.getElementById('f-car2');
-        if(carEl2) carEl2.value='13:15 pred Quo Vadis';
-      }, 200);
-    } else if(isCoffeeCakeTour){
-      document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
-      const eg=document.getElementById('f-end-guide');
-      if(eg) eg.value='13:00 v Pulitzer SNP';
-      setTimeout(()=>{
-        document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
-        const eg2=document.getElementById('f-end-guide');
-        if(eg2) eg2.value='13:00 v Pulitzer SNP';
-      }, 200);
-    } else if(isBeerTastingTour){
-      document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
-      const eg=document.getElementById('f-end-guide');
-      if(eg) eg.value='13:00 v Pulitzer SNP';
-      setTimeout(()=>{
-        document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
-        const eg2=document.getElementById('f-end-guide');
-        if(eg2) eg2.value='13:00 v Pulitzer SNP';
-      }, 200);
-    } else if(isClassicalWalk){
-      document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
-      const eg=document.getElementById('f-end-guide');
-      if(eg) eg.value='13:00';
-      setTimeout(()=>{
-        document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
-        const eg2=document.getElementById('f-end-guide');
-        if(eg2) eg2.value='13:00';
-      }, 200);
     } else if(time && !amendId){
       document.getElementById('f-meet').value=time;
     }
     document.getElementById('f-pay').value='FAKTURA NA ETRAVEL';
     updatePrices();
-    updateTicketBox();
     showNotif('✅ Import uspesny',customer+' · '+pax+' pax · '+voucher,null);
   }, 300);
 }
@@ -2658,123 +2359,6 @@ async function savePrices(){
 }
 
 document.getElementById('gmodal').addEventListener('click',function(e){if(e.target===this)closeGM();});
-
-// ── Vienna Dashboard ──────────────────────────────────────
-const VIENNA_LABELS = {
-  lunch:'Lunch (P2)',
-  coffee_cake:'Coffee & Cake (P10)',
-  beer:'Beer Tasting (P19)',
-  gct:'Grand City Tour'
-};
-const VIENNA_TYPES = ['lunch','coffee_cake','beer','gct'];
-
-function initViennaYearSelect(){
-  const sel = document.getElementById('vd-year');
-  if(!sel || sel.options.length > 0) return;
-  const yr = new Date().getFullYear();
-  for(let y = yr+1; y >= yr-2; y--){
-    const o = document.createElement('option');
-    o.value = y; o.textContent = y;
-    if(y === yr) o.selected = true;
-    sel.appendChild(o);
-  }
-}
-
-async function loadViennaDashboard(){
-  initViennaYearSelect();
-  const year = parseInt(document.getElementById('vd-year').value);
-  const content = document.getElementById('vd-content');
-  content.innerHTML = '<p style="color:var(--text2);padding:20px 0;">Načítavam...</p>';
-
-  try {
-    const {data, error} = await SB.from('bookings')
-      .select('date,has_bus_ticket,tickets_ordered,tickets_cancelled')
-      .eq('has_bus_ticket', true)
-      .gte('date', year+'-01-01')
-      .lte('date', year+'-12-31')
-      .order('date', {ascending:true});
-
-    if(error) throw error;
-
-    // Build monthly totals
-    const months = Array.from({length:12}, (_,i)=>({ordered:0, cancelled:0}));
-
-    data.forEach(row=>{
-      if(!row.date) return;
-      const m = parseInt(row.date.split('-')[1]) - 1;
-      if(m < 0 || m > 11) return;
-      months[m].ordered += parseInt(row.tickets_ordered)||0;
-      months[m].cancelled += parseInt(row.tickets_cancelled)||0;
-    });
-
-    const monthNames = ['Január','Február','Marec','Apríl','Máj','Jún','Júl','August','September','Október','November','December'];
-    const grandOrdered = months.reduce((s,m)=>s+m.ordered,0);
-    const grandCancelled = months.reduce((s,m)=>s+m.cancelled,0);
-    const grandUtilized = grandOrdered - grandCancelled;
-
-    let html = `
-    <div class="card" style="overflow-x:auto;padding:0;">
-      <table style="width:100%;border-collapse:collapse;font-size:14px;">
-        <thead>
-          <tr style="background:var(--surface2);">
-            <th style="text-align:left;padding:11px 16px;border-bottom:2px solid var(--border);font-weight:600;">Mesiac</th>
-            <th style="text-align:center;padding:11px 16px;border-bottom:2px solid var(--border);color:var(--accent);font-weight:600;">Objednané lístky</th>
-            <th style="text-align:center;padding:11px 16px;border-bottom:2px solid var(--border);color:var(--danger);font-weight:600;">Stornované</th>
-            <th style="text-align:center;padding:11px 16px;border-bottom:2px solid var(--border);font-weight:600;">Využité</th>
-          </tr>
-        </thead><tbody>`;
-
-    months.forEach((m,i)=>{
-      const utilized = m.ordered - m.cancelled;
-      const hasData = m.ordered > 0 || m.cancelled > 0;
-      html += `<tr style="border-bottom:1px solid var(--border2);${i%2===1?'background:var(--surface2);':''}">
-        <td style="padding:10px 16px;font-weight:500;">${monthNames[i]}</td>
-        <td style="text-align:center;padding:10px 16px;${m.ordered>0?'font-weight:700;color:var(--accent);':'color:var(--text3);'}">${m.ordered||'—'}</td>
-        <td style="text-align:center;padding:10px 16px;${m.cancelled>0?'font-weight:700;color:var(--danger);':'color:var(--text3);'}">${m.cancelled||'—'}</td>
-        <td style="text-align:center;padding:10px 16px;${hasData?'font-weight:700;':'color:var(--text3);'}">${hasData?utilized:'—'}</td>
-      </tr>`;
-    });
-
-    html += `<tr style="background:var(--surface2);border-top:2px solid var(--border);font-weight:700;font-size:15px;">
-      <td style="padding:13px 16px;">ROK ${year}</td>
-      <td style="text-align:center;padding:13px 16px;color:var(--accent);">${grandOrdered||'—'}</td>
-      <td style="text-align:center;padding:13px 16px;color:var(--danger);">${grandCancelled||'—'}</td>
-      <td style="text-align:center;padding:13px 16px;">${grandOrdered>0?grandUtilized:'—'}</td>
-    </tr>`;
-
-    html += '</tbody></table></div>';
-
-    // Store data for Excel export
-    window._viennaData = {months, year, monthNames};
-    content.innerHTML = html;
-
-  } catch(e) {
-    content.innerHTML = `<div style="color:var(--danger);padding:20px 0;">Chyba načítania: ${e.message}</div>`;
-  }
-}
-
-async function exportViennaExcel(){
-  if(!window._viennaData){ alert('Najprv načítaj dashboard.'); return; }
-  const {months, year, monthNames} = window._viennaData;
-
-  const rows = [['Mesiac','Objednané lístky','Stornované','Využité']];
-  months.forEach((m,i)=>{
-    rows.push([monthNames[i], m.ordered, m.cancelled, m.ordered-m.cancelled]);
-  });
-  const grandO = months.reduce((s,m)=>s+m.ordered,0);
-  const grandC = months.reduce((s,m)=>s+m.cancelled,0);
-  rows.push(['ROK '+year, grandO, grandC, grandO-grandC]);
-
-  const csv = '\uFEFF' + rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `vienna_listky_${year}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="bootApp()" onerror="alert('Chyba načítania. Skontroluj internet.')"></script>
 <script>
