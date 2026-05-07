@@ -1490,6 +1490,8 @@ function openOutlook(e){
   window.location.href='mailto:'+encodeURIComponent(guideEmail)
     +'?subject='+encodeURIComponent(lastSubj)
     +'&body='+encodeURIComponent(lastTxt);
+  // Navigate to history after sending
+  setTimeout(()=>{ resetForm(); nav('history'); }, 500);
 }
 
 function copyTxt(){
@@ -1531,16 +1533,12 @@ async function saveHist(){
     if(amendId){
       const{error}=await SB.from('bookings').update(row).eq('id',amendId);
       if(error){alert('Chyba ukladania: '+error.message);return;}
-      showNotif('✅ Zmena ulozena','Objednavka bola aktualizovana.',()=>{nav('history');});
-      resetForm();
-      nav('history');
+      showNotif('✅ Zmena ulozena','Objednavka bola aktualizovana.',null);
     } else {
       window._lastSavedAt = Date.now();
       const{error}=await SB.from('bookings').insert(row);
       if(error){alert('Chyba ukladania: '+error.message);return;}
-      showNotif('✅ Ulozene do historie','Email bol ulozeny.',()=>{nav('history');});
-      resetForm();
-      nav('history');
+      showNotif('✅ Ulozene do historie','Email bol ulozeny.',null);
     }
   } catch(e){ alert('Chyba: '+e.message); }
 }
