@@ -890,21 +890,14 @@ async function doLogin(){
   document.getElementById('login-loading').style.display='block';
 
   try {
-    // Set session expiry based on remember me
-    if(remember){
-      // Store preference
-      localStorage.setItem('bct_remember','1');
-    } else {
-      localStorage.removeItem('bct_remember');
-    }
-
     const {data, error} = await SB.auth.signInWithPassword({email, password});
     document.getElementById('login-loading').style.display='none';
     if(error){ document.getElementById('login-error').style.display='block'; return; }
 
-    // If remember me, persist session
     if(remember){
-      localStorage.setItem('bct_session', JSON.stringify(data.session));
+      localStorage.setItem('bct_remember','1');
+    } else {
+      localStorage.removeItem('bct_remember');
     }
 
     showApp();
@@ -1023,45 +1016,51 @@ async function bootApp(){
   await loadSB();
   const url=localStorage.getItem('sb_url'), key=localStorage.getItem('sb_key');
 
-  // No DB config yet — show setup screen
   if(!url||!key){
     document.getElementById('pwd-screen').style.display='none';
     document.getElementById('setup').style.display='flex';
     return;
   }
 
-  // Create SB only once
   if(!SB) SB = window.supabase.createClient(url, key, {
-    auth: { persistSession: true, autoRefreshToken: true, storageKey: 'bct-session' }
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: 'bct-session'
+    }
   });
 
-  // Try to restore saved session if remember me was checked
-  const savedSession = localStorage.getItem('bct_session');
-  if(savedSession){
-    try {
-      const session = JSON.parse(savedSession);
-      const { error } = await SB.auth.setSession(session);
-      if(!error){
-        showApp();
-        return;
-      }
-    } catch(e){ localStorage.removeItem('bct_session'); }
-  }
-
-  // Check if already logged in via Supabase session
   try {
+    // Try to get existing session
     const { data: { session } } = await SB.auth.getSession();
     if(session){
       showApp();
-    } else {
-      document.getElementById('setup').style.display='none';
-      document.getElementById('pwd-screen').style.display='flex';
-      // Pre-check remember me if previously used
-      if(localStorage.getItem('bct_remember')==='1'){
-        document.getElementById('remember-me').checked = true;
-      }
-      setTimeout(()=>{ const el=document.getElementById('login-email'); if(el)el.focus(); }, 100);
+      return;
     }
+
+    // If no session but we have a stored one, try to refresh it
+    const stored = localStorage.getItem('bct-session');
+    if(stored){
+      try {
+        const parsed = JSON.parse(stored);
+        const refreshToken = parsed?.refresh_token;
+        if(refreshToken){
+          const { data, error } = await SB.auth.refreshSession({ refresh_token: refreshToken });
+          if(!error && data.session){
+            showApp();
+            return;
+          }
+        }
+      } catch(e){ }
+    }
+
+    // No valid session — show login
+    document.getElementById('setup').style.display='none';
+    document.getElementById('pwd-screen').style.display='flex';
+    if(localStorage.getItem('bct_remember')==='1'){
+      document.getElementById('remember-me').checked = true;
+    }
+    setTimeout(()=>{ const el=document.getElementById('login-email'); if(el)el.focus(); }, 100);
   } catch(e){
     document.getElementById('setup').style.display='none';
     document.getElementById('pwd-screen').style.display='flex';
@@ -1272,28 +1271,21 @@ function renderCB(id){
     </div>`;
   }
 
-  // Ticket section
+  // Ticket section — one checkbox = 2 tickets (tam+spat)
   let ticketSection='';
   if(showTickets&&!gone){
-    const tamStorno=d.ticket_tam_storno?'style="text-decoration:line-through;opacity:0.5;"':'';
-    const spatStorno=d.ticket_spat_storno?'style="text-decoration:line-through;opacity:0.5;"':'';
+    const hasTicket = d.ticket_tam || d.ticket_spat;
+    const fullyStorno = d.ticket_tam_storno && d.ticket_spat_storno;
+    const partStorno = (d.ticket_tam_storno||d.ticket_spat_storno) && !fullyStorno;
     ticketSection=`
     <div style="margin-top:12px;padding:10px 12px;background:var(--blue-l);border-radius:var(--r);border:1px solid #b8d4e8;">
-      <div style="font-size:11px;font-weight:600;color:var(--blue);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">🎫 Cestovné lístky (Slovak Lines)</div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;">
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin:0;" ${tamStorno}>
-          <input type="checkbox" ${d.ticket_tam?'checked':''} ${d.ticket_tam_storno?'disabled':''} onchange="setTicket(${id},'tam',this.checked)" style="width:16px;height:16px;cursor:pointer;">
-          <span style="font-size:13px;font-weight:500;">TAM (Viedeň → Bratislava)</span>
-          ${d.ticket_tam_storno?`<span style="font-size:11px;color:var(--danger);font-weight:600;">STORNO</span>`:''}
-          ${d.ticket_tam&&!d.ticket_tam_storno?`<button onclick="stornoTicket(${id},'tam')" style="font-size:10px;padding:2px 6px;border:1px solid var(--danger-l);background:var(--danger-l);color:var(--danger);border-radius:4px;cursor:pointer;margin-left:4px;">Storno</button>`:''}
-        </label>
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin:0;" ${spatStorno}>
-          <input type="checkbox" ${d.ticket_spat?'checked':''} ${d.ticket_spat_storno?'disabled':''} onchange="setTicket(${id},'spat',this.checked)" style="width:16px;height:16px;cursor:pointer;">
-          <span style="font-size:13px;font-weight:500;">SPÄŤ (Bratislava → Viedeň)</span>
-          ${d.ticket_spat_storno?`<span style="font-size:11px;color:var(--danger);font-weight:600;">STORNO</span>`:''}
-          ${d.ticket_spat&&!d.ticket_spat_storno?`<button onclick="stornoTicket(${id},'spat')" style="font-size:10px;padding:2px 6px;border:1px solid var(--danger-l);background:var(--danger-l);color:var(--danger);border-radius:4px;cursor:pointer;margin-left:4px;">Storno</button>`:''}
-        </label>
-      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+        <input type="checkbox" ${hasTicket?'checked':''} onchange="setTicket(${id},this.checked)" style="width:16px;height:16px;cursor:pointer;">
+        <span style="font-size:13px;font-weight:500;color:var(--blue);">🎫 Cestovný lístok Slovak Lines</span>
+        <span style="font-size:11px;color:var(--text2);">(TAM + SPÄŤ)</span>
+        ${fullyStorno?'<span style="font-size:11px;color:var(--danger);font-weight:600;margin-left:4px;">PLNÉ STORNO</span>':''}
+        ${partStorno?'<span style="font-size:11px;color:var(--warn);font-weight:600;margin-left:4px;">ČIASTOČNÉ STORNO</span>':''}
+      </label>
     </div>`;
   }
 
@@ -1331,16 +1323,23 @@ function renderCB(id){
   if(ex)ex.replaceWith(div);else document.getElementById('clist').appendChild(div);
 }
 
-function setTicket(id, dir, val){
-  if(dir==='tam') cData[id].ticket_tam=val;
-  else cData[id].ticket_spat=val;
+function setTicket(id, val){
+  // One checkbox = both tickets (tam + spat)
+  cData[id].ticket_tam = val;
+  cData[id].ticket_spat = val;
   renderCB(id);
 }
 
-function stornoTicket(id, dir){
-  if(!confirm('Stornovat tento listok?')) return;
-  if(dir==='tam') cData[id].ticket_tam_storno=true;
-  else cData[id].ticket_spat_storno=true;
+function stornoTicket(id, type){
+  // type: 'all', 'spat'
+  if(type==='all'){
+    if(!confirm('Stornovat oba listky (TAM + SPÄŤ)?')) return;
+    cData[id].ticket_tam_storno=true;
+    cData[id].ticket_spat_storno=true;
+  } else {
+    if(!confirm('Stornovat len listok SPÄŤ?')) return;
+    cData[id].ticket_spat_storno=true;
+  }
   renderCB(id);
 }
 
@@ -2039,6 +2038,8 @@ function filterHistory(){
     const stMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'GCT',combo:'Combo','gct-auto':'GCT Auto',wine:'Vinny okruh',devin:'GCT+Devin'};
     const st=stMap[h.service_type]||'Walking';
     const henc=encodeURIComponent(JSON.stringify(h));
+    // Check if any client has tickets
+    const hasTickets = ['walk1','gct','combo','gct-auto'].includes(h.service_type) && cn.some?.(c=>c.ticket_tam||c.ticket_spat);
     const clientDisplay=cn.map(n=>q&&n.toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(n)+'</mark>':esc(n)).join(', ')||'—';
     const guideDisplay=q&&(h.guide_name||'').toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(h.guide_name||'—')+'</mark>':esc(h.guide_name||'—');
     return `<div class="hi">
@@ -2052,6 +2053,7 @@ function filterHistory(){
         <button class="btn btn-p" style="font-size:12px;padding:5px 9px;" onclick="openCopyNew(JSON.parse(decodeURIComponent('${henc}')))">Kopirovat ako nova</button>
         <button class="btn btn-d" style="font-size:12px;padding:5px 9px;" onclick="openStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Storno</button>
         <button class="btn btn-w" style="font-size:12px;padding:5px 9px;background:#fff7e6;border-color:#f0a500;color:#b37700;" onclick="openPartialStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Ciastocne storno</button>
+        ${hasTickets?`<button class="btn btn-g" style="font-size:11px;padding:4px 8px;color:var(--blue);border-color:#b8d4e8;" onclick="openTicketStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">🎫 Storno lístka</button>`:''}
         <button class="btn btn-g" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger-l);" onclick="deleteBooking('${h.id}')">Zmazat</button>
       </div>
     </div>`;
@@ -2284,6 +2286,58 @@ function exportTicketsExcel(){
     a.click(); URL.revokeObjectURL(url);
   });
 }
+// ── Ticket Storno ─────────────────────────────────────────
+async function openTicketStorno(id, h){
+  let clients=[]; try{clients=JSON.parse(h.clients||'[]');}catch{}
+  const ticketClients=clients.filter(c=>c.ticket_tam||c.ticket_spat);
+  if(!ticketClients.length){ alert('Tato objednavka nema ziadne listky.'); return; }
+
+  const modal=document.createElement('div');
+  modal.id='ticket-storno-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  const inner=document.createElement('div');
+  inner.style.cssText='background:var(--bg);border-radius:var(--rl);padding:28px;max-width:480px;width:90%;';
+
+  const clientOptions=ticketClients.map(c=>{
+    const idx=clients.indexOf(c);
+    const tamOk=c.ticket_tam&&!c.ticket_tam_storno;
+    const spatOk=c.ticket_spat&&!c.ticket_spat_storno;
+    if(!tamOk&&!spatOk) return '';
+    return '<div style="padding:12px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;">'+
+      '<div style="font-weight:600;margin-bottom:8px;">'+esc(c.name||'Klient')+' · '+(c.pax||1)+' pax</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+      (tamOk&&spatOk?'<button class="btn btn-d" style="font-size:12px;" onclick="doTicketStorno(\''+id+'\','+idx+',\'all\')">Storno TAM + SPÄŤ</button>':'')+
+      (spatOk?'<button class="btn btn-w" style="font-size:12px;background:#fff7e6;border-color:#f0a500;color:#b37700;" onclick="doTicketStorno(\''+id+'\','+idx+',\'spat\')">Storno len SPÄŤ</button>':'')+
+      (tamOk&&!spatOk?'<button class="btn btn-d" style="font-size:12px;" onclick="doTicketStorno(\''+id+'\','+idx+',\'tam\')">Storno TAM</button>':'')+
+      '</div></div>';
+  }).join('');
+
+  inner.innerHTML='<h3 style="margin:0 0 12px;">🎫 Storno cestovneho listka</h3>'+
+    (clientOptions||'<p style="color:var(--text2);">Vsetky listky su uz stornovane.</p>')+
+    '<button class="btn btn-g btn-fw" style="margin-top:10px;" onclick="document.getElementById(\'ticket-storno-modal\').remove()">Zavriet</button>';
+  modal.appendChild(inner);
+  window._ticketStornoH=h;
+  document.body.appendChild(modal);
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+}
+
+async function doTicketStorno(bookingId, clientIdx, type){
+  const h=window._ticketStornoH;
+  if(!h) return;
+  let clients=[]; try{clients=JSON.parse(h.clients||'[]');}catch{}
+  const c=clients[clientIdx];
+  if(!c) return;
+  if(type==='all'||type==='tam') c.ticket_tam_storno=true;
+  if(type==='all'||type==='spat') c.ticket_spat_storno=true;
+  try {
+    await SB.from('bookings').update({clients:JSON.stringify(clients)}).eq('id',bookingId);
+    const idx=historyCache.findIndex(x=>x.id===bookingId);
+    if(idx!==-1) historyCache[idx].clients=JSON.stringify(clients);
+    document.getElementById('ticket-storno-modal').remove();
+    showNotif('✅ Listok stornovany','Zmena ulozena.',null);
+  } catch(e){ alert('Chyba: '+e.message); }
+}
+
 function openBokun(){
   const modal = document.createElement('div');
   modal.id = 'bokun-modal';
@@ -2452,21 +2506,30 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
     if(lsel&&lang) lsel.value=lang;
   }
 
-  // Step 2: Add client
-  addClient();
-  const newId=cIds[cIds.length-1];
-  if(newId){
-    const cnEl=document.getElementById('cn'+newId);
-    if(cnEl){cnEl.value=customer;cData[newId].name=customer;}
-    cData[newId].pax=pax;
-    document.getElementById('cpx'+newId).textContent=pax;
-    const cvEl=document.getElementById('cv'+newId);
-    if(cvEl){cvEl.value=voucher;cData[newId].voucher=voucher;}
+  // Step 2: Add or update client
+  let targetId;
+  if(amendId && cIds.length > 0){
+    // In amend mode — add new client from Bokun
+    addClient();
+    targetId = cIds[cIds.length-1];
+  } else {
+    // New booking — add fresh client
+    addClient();
+    targetId = cIds[cIds.length-1];
+  }
+
+  if(targetId){
+    const cnEl=document.getElementById('cn'+targetId);
+    if(cnEl){cnEl.value=customer;cData[targetId].name=customer;}
+    cData[targetId].pax=pax;
+    document.getElementById('cpx'+targetId).textContent=pax;
+    const cvEl=document.getElementById('cv'+targetId);
+    if(cvEl){cvEl.value=voucher;cData[targetId].voucher=voucher;}
     if(isViennaTour){
-      const ntEl=document.getElementById('cno'+newId);
+      const ntEl=document.getElementById('cno'+targetId);
       if(ntEl){
         ntEl.value='klienti maju polievku & halusky v Pulitzer SNP';
-        cData[newId].note='klienti maju polievku & halusky v Pulitzer SNP';
+        cData[targetId].note='klienti maju polievku & halusky v Pulitzer SNP';
       }
     }
   }
