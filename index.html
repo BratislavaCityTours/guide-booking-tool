@@ -894,10 +894,13 @@ async function doLogin(){
     document.getElementById('login-loading').style.display='none';
     if(error){ document.getElementById('login-error').style.display='block'; return; }
 
-    if(remember){
+    if(remember && data.session){
+      // Store refresh token separately for persistent login
       localStorage.setItem('bct_remember','1');
+      localStorage.setItem('bct_refresh', data.session.refresh_token);
     } else {
       localStorage.removeItem('bct_remember');
+      localStorage.removeItem('bct_refresh');
     }
 
     showApp();
@@ -908,11 +911,10 @@ async function doLogin(){
 }
 
 async function logout(){
-  try {
-    await SB.auth.signOut();
-  } catch(e){ console.warn('Logout error:', e.message); }
+  try { await SB.auth.signOut(); } catch(e){}
   localStorage.removeItem('bct_session');
   localStorage.removeItem('bct_remember');
+  localStorage.removeItem('bct_refresh');
   window.location.reload();
 }
 
@@ -1031,27 +1033,30 @@ async function bootApp(){
   });
 
   try {
-    // Try to get existing session
+    // Try to get existing session first
     const { data: { session } } = await SB.auth.getSession();
     if(session){
+      // Update stored refresh token
+      if(localStorage.getItem('bct_remember')==='1' && session.refresh_token){
+        localStorage.setItem('bct_refresh', session.refresh_token);
+      }
       showApp();
       return;
     }
 
-    // If no session but we have a stored one, try to refresh it
-    const stored = localStorage.getItem('bct-session');
-    if(stored){
-      try {
-        const parsed = JSON.parse(stored);
-        const refreshToken = parsed?.refresh_token;
-        if(refreshToken){
-          const { data, error } = await SB.auth.refreshSession({ refresh_token: refreshToken });
-          if(!error && data.session){
-            showApp();
-            return;
-          }
-        }
-      } catch(e){ }
+    // Try refresh token if remember me was checked
+    const storedRefresh = localStorage.getItem('bct_refresh');
+    if(storedRefresh && localStorage.getItem('bct_remember')==='1'){
+      const { data, error } = await SB.auth.refreshSession({ refresh_token: storedRefresh });
+      if(!error && data.session){
+        // Update refresh token (it rotates)
+        localStorage.setItem('bct_refresh', data.session.refresh_token);
+        showApp();
+        return;
+      } else {
+        // Refresh failed — clear stored token
+        localStorage.removeItem('bct_refresh');
+      }
     }
 
     // No valid session — show login
