@@ -1621,6 +1621,7 @@ function resetForm(){
 }
 
 function openAmend(id, h){
+  if(!h){ alert('Chyba: zaznam nenajdeny. Obnov stranku (F5) a skus znova.'); return; }
   cIds=[];cCnt=0;cData={};lastTxt='';lastSubj='';
   amendId=id; stornoId=null;
   document.getElementById('clist').innerHTML='';
@@ -1652,7 +1653,8 @@ function openAmend(id, h){
 }
 
 async function openCopyNew(h){
-  if(!confirm('Skopirovat ako novu objednavku? Stara objednavka bude vymazana z historie.')) return;
+  if(!h){ alert('Chyba: zaznam nenajdeny. Obnov stranku (F5) a skus znova.'); return; }
+  if(!confirm('Skopirovat ako novu objednavku?')) return;
 
   // Delete old booking
   try {
@@ -1696,6 +1698,7 @@ async function openCopyNew(h){
 }
 
 async function openStorno(id, h){
+  if(!h){ alert('Chyba: zaznam nenajdeny. Obnov stranku (F5) a skus znova.'); return; }
   if(h.is_storno){ alert('Tato objednavka je uz stornovana — neda sa stornovat znova.'); return; }
   if(!confirm('Vygenerovat storno celej objednavky?')) return;
 
@@ -1770,6 +1773,7 @@ async function openStorno(id, h){
 }
 
 async function openPartialStorno(id, h){
+  if(!h){ alert('Chyba: zaznam nenajdeny. Obnov stranku (F5) a skus znova.'); return; }
   if(h.is_storno){ alert('Tato objednavka je uz stornovana.'); return; }
 
   // Parse clients
@@ -1967,7 +1971,9 @@ let historyPage = 1;
 const HISTORY_PER_PAGE = 50;
 
 function getFromCache(id){
-  return historyCache.find(x=>x.id===id) || null;
+  const found = historyCache.find(x=>x.id===id);
+  if(!found) alert('Chyba: zaznam nenajdeny v cache. Skus obnovit historiu (F5).');
+  return found || null;
 }
 
 async function renderHistory(){
@@ -2297,6 +2303,7 @@ function exportTicketsExcel(){
 }
 // ── Ticket Storno ─────────────────────────────────────────
 async function openTicketStorno(id, h){
+  if(!h){ alert('Chyba: zaznam nenajdeny. Obnov stranku (F5).'); return; }
   let clients=[]; try{clients=JSON.parse(h.clients||'[]');}catch{}
   const ticketClients=clients.filter(c=>c.ticket_tam||c.ticket_spat);
   if(!ticketClients.length){ alert('Tato objednavka nema ziadne listky.'); return; }
@@ -2307,28 +2314,69 @@ async function openTicketStorno(id, h){
   const inner=document.createElement('div');
   inner.style.cssText='background:var(--bg);border-radius:var(--rl);padding:28px;max-width:480px;width:90%;';
 
-  const clientOptions=ticketClients.map(c=>{
+  const title=document.createElement('h3');
+  title.style.cssText='margin:0 0 12px;';
+  title.textContent='Storno cestovneho listka';
+  inner.appendChild(title);
+
+  let anyShown=false;
+  ticketClients.forEach(c=>{
     const idx=clients.indexOf(c);
     const tamOk=c.ticket_tam&&!c.ticket_tam_storno;
     const spatOk=c.ticket_spat&&!c.ticket_spat_storno;
-    if(!tamOk&&!spatOk) return '';
-    return '<div style="padding:12px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;">'+
-      '<div style="font-weight:600;margin-bottom:8px;">'+esc(c.name||'Klient')+' · '+(c.pax||1)+' pax</div>'+
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
-      (tamOk&&spatOk?'<button class="btn btn-d" style="font-size:12px;" onclick="doTicketStorno(\''+id+'\','+idx+',\'all\')">Storno TAM + SPÄŤ</button>':'')+
-      (spatOk?'<button class="btn btn-w" style="font-size:12px;background:#fff7e6;border-color:#f0a500;color:#b37700;" onclick="doTicketStorno(\''+id+'\','+idx+',\'spat\')">Storno len SPÄŤ</button>':'')+
-      (tamOk&&!spatOk?'<button class="btn btn-d" style="font-size:12px;" onclick="doTicketStorno(\''+id+'\','+idx+',\'tam\')">Storno TAM</button>':'')+
-      '</div></div>';
-  }).join('');
-
-  inner.innerHTML='<h3 style="margin:0 0 12px;">🎫 Storno cestovneho listka</h3>'+
-    (clientOptions||'<p style="color:var(--text2);">Vsetky listky su uz stornovane.</p>')+
-    '<button class="btn btn-g btn-fw" style="margin-top:10px;" onclick="document.getElementById(\'ticket-storno-modal\').remove()">Zavriet</button>';
+    if(!tamOk&&!spatOk) return;
+    anyShown=true;
+    const block=document.createElement('div');
+    block.style.cssText='padding:12px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;';
+    const nameEl=document.createElement('div');
+    nameEl.style.cssText='font-weight:600;margin-bottom:8px;';
+    nameEl.textContent=(c.name||'Klient')+' · '+(c.pax||1)+' pax';
+    block.appendChild(nameEl);
+    const btnRow=document.createElement('div');
+    btnRow.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
+    if(tamOk&&spatOk){
+      const b=document.createElement('button');
+      b.className='btn btn-d'; b.style.fontSize='12px';
+      b.textContent='Storno TAM + SPAT';
+      b.addEventListener('click',()=>doTicketStorno(id,idx,'all'));
+      btnRow.appendChild(b);
+    }
+    if(spatOk){
+      const b=document.createElement('button');
+      b.className='btn btn-w';
+      b.style.cssText='font-size:12px;background:#fff7e6;border-color:#f0a500;color:#b37700;';
+      b.textContent='Storno len SPAT';
+      b.addEventListener('click',()=>doTicketStorno(id,idx,'spat'));
+      btnRow.appendChild(b);
+    }
+    if(tamOk&&!spatOk){
+      const b=document.createElement('button');
+      b.className='btn btn-d'; b.style.fontSize='12px';
+      b.textContent='Storno TAM';
+      b.addEventListener('click',()=>doTicketStorno(id,idx,'tam'));
+      btnRow.appendChild(b);
+    }
+    block.appendChild(btnRow);
+    inner.appendChild(block);
+  });
+  if(!anyShown){
+    const p=document.createElement('p');
+    p.style.color='var(--text2)';
+    p.textContent='Vsetky listky su uz stornovane.';
+    inner.appendChild(p);
+  }
+  const closeBtn=document.createElement('button');
+  closeBtn.className='btn btn-g btn-fw';
+  closeBtn.style.marginTop='10px';
+  closeBtn.textContent='Zavriet';
+  closeBtn.addEventListener('click',()=>modal.remove());
+  inner.appendChild(closeBtn);
   modal.appendChild(inner);
   window._ticketStornoH=h;
   document.body.appendChild(modal);
   modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
 }
+
 
 async function doTicketStorno(bookingId, clientIdx, type){
   const h=window._ticketStornoH;
@@ -2488,18 +2536,44 @@ function parseBokun(){
 
 function showLangPicker(langs, callback){
   const names={EN:'Anglictina',DE:'Nemcina',ES:'Spanielcina',FR:'Francuzstina',IT:'Taliancina'};
-  const modal = document.createElement('div');
+  const modal=document.createElement('div');
   modal.id='lang-picker-modal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
   const inner=document.createElement('div');
   inner.style.cssText='background:var(--bg);border-radius:var(--rl);padding:28px;max-width:380px;width:90%;';
-  let btns='';
-  langs.forEach(l=>{ btns+='<button class="btn btn-g btn-fw" style="margin-bottom:8px;padding:11px;" onclick="document.getElementById(\'lang-picker-modal\').remove();window._bokunLangCb(\''+l+'\')">'+(names[l]||l)+'</button>'; });
-  inner.innerHTML='<h3 style="margin:0 0 10px;">Vyber jazyk tury</h3><p style="font-size:13px;color:var(--text2);margin:0 0 16px;">Najdene viacere jazyky:</p>'+btns+'<button class="btn btn-g btn-fw" style="margin-top:4px;" onclick="document.getElementById(\'lang-picker-modal\').remove()">Zrusit</button>';
+
+  const title=document.createElement('h3');
+  title.style.cssText='margin:0 0 10px;';
+  title.textContent='Vyber jazyk tury';
+  inner.appendChild(title);
+
+  const sub=document.createElement('p');
+  sub.style.cssText='font-size:13px;color:var(--text2);margin:0 0 16px;';
+  sub.textContent='Najdene viacere jazyky:';
+  inner.appendChild(sub);
+
+  langs.forEach(l=>{
+    const btn=document.createElement('button');
+    btn.className='btn btn-g btn-fw';
+    btn.style.cssText='margin-bottom:8px;padding:11px;';
+    btn.textContent=names[l]||l;
+    btn.addEventListener('click',()=>{
+      modal.remove();
+      callback(l);
+    });
+    inner.appendChild(btn);
+  });
+
+  const cancelBtn=document.createElement('button');
+  cancelBtn.className='btn btn-g btn-fw';
+  cancelBtn.style.cssText='margin-top:4px;';
+  cancelBtn.textContent='Zrusit';
+  cancelBtn.addEventListener('click',()=>modal.remove());
+  inner.appendChild(cancelBtn);
+
   modal.appendChild(inner);
-  window._bokunLangCb=callback;
   document.body.appendChild(modal);
-  modal.addEventListener('click',e=>{ if(e.target===modal) modal.remove(); });
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
 }
 
 function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour}){
