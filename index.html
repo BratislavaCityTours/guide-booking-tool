@@ -1966,6 +1966,10 @@ let historyCache = [];
 let historyPage = 1;
 const HISTORY_PER_PAGE = 50;
 
+function getFromCache(id){
+  return historyCache.find(x=>x.id===id) || null;
+}
+
 async function renderHistory(){
   const el=document.getElementById('hlist');
   el.innerHTML='<div class="load">Načítavam...</div>';
@@ -2042,9 +2046,9 @@ function filterHistory(){
     let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
     const stMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'GCT',combo:'Combo','gct-auto':'GCT Auto',wine:'Vinny okruh',devin:'GCT+Devin'};
     const st=stMap[h.service_type]||'Walking';
-    const henc=encodeURIComponent(JSON.stringify(h));
     // Check if any client has tickets
-    const hasTickets = ['walk1','gct','combo','gct-auto'].includes(h.service_type) && cn.some?.(c=>c.ticket_tam||c.ticket_spat);
+    let cn2=[]; try{cn2=JSON.parse(h.clients||'[]');}catch{}
+    const hasTickets = ['walk1','gct','combo','gct-auto'].includes(h.service_type) && cn2.some(c=>c.ticket_tam||c.ticket_spat);
     const clientDisplay=cn.map(n=>q&&n.toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(n)+'</mark>':esc(n)).join(', ')||'—';
     const guideDisplay=q&&(h.guide_name||'').toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(h.guide_name||'—')+'</mark>':esc(h.guide_name||'—');
     return `<div class="hi">
@@ -2054,11 +2058,11 @@ function filterHistory(){
         <div class="hc">${clientDisplay}</div>
       </div>
       <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
-        <button class="btn btn-w" style="font-size:12px;padding:5px 9px;" onclick="openAmend('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Zmena</button>
-        <button class="btn btn-p" style="font-size:12px;padding:5px 9px;" onclick="openCopyNew(JSON.parse(decodeURIComponent('${henc}')))">Kopirovat ako nova</button>
-        <button class="btn btn-d" style="font-size:12px;padding:5px 9px;" onclick="openStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Storno</button>
-        <button class="btn btn-w" style="font-size:12px;padding:5px 9px;background:#fff7e6;border-color:#f0a500;color:#b37700;" onclick="openPartialStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">Ciastocne storno</button>
-        ${hasTickets?`<button class="btn btn-g" style="font-size:11px;padding:4px 8px;color:var(--blue);border-color:#b8d4e8;" onclick="openTicketStorno('${h.id}',JSON.parse(decodeURIComponent('${henc}')))">🎫 Storno lístka</button>`:''}
+        <button class="btn btn-w" style="font-size:12px;padding:5px 9px;" onclick="openAmend('${h.id}',getFromCache('${h.id}'))">Zmena</button>
+        <button class="btn btn-p" style="font-size:12px;padding:5px 9px;" onclick="openCopyNew(getFromCache('${h.id}'))">Kopirovat ako nova</button>
+        <button class="btn btn-d" style="font-size:12px;padding:5px 9px;" onclick="openStorno('${h.id}',getFromCache('${h.id}'))">Storno</button>
+        <button class="btn btn-w" style="font-size:12px;padding:5px 9px;background:#fff7e6;border-color:#f0a500;color:#b37700;" onclick="openPartialStorno('${h.id}',getFromCache('${h.id}'))">Ciastocne storno</button>
+        ${hasTickets?`<button class="btn btn-g" style="font-size:11px;padding:4px 8px;color:var(--blue);border-color:#b8d4e8;" onclick="openTicketStorno('${h.id}',getFromCache('${h.id}'))">🎫 Storno lístka</button>`:''}
         <button class="btn btn-g" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger-l);" onclick="deleteBooking('${h.id}')">Zmazat</button>
       </div>
     </div>`;
