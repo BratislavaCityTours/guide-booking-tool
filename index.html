@@ -988,20 +988,35 @@ function showApp(){
 
   // Monitor auth state changes
   SB.auth.onAuthStateChange((event, session)=>{
-    if(event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')){
-      // Session expired — show notification and redirect to login
-      showSessionExpired();
+    if(event === 'TOKEN_REFRESHED' && session){
+      // Update stored refresh token
+      if(localStorage.getItem('bct_remember')==='1' && session.refresh_token){
+        localStorage.setItem('bct_refresh', session.refresh_token);
+      }
+      return;
     }
-    if(event === 'TOKEN_REFRESHED'){
-      // session refreshed
+    // Only show expired banner on explicit SIGNED_OUT
+    if(event === 'SIGNED_OUT'){
+      showSessionExpired();
     }
   });
 
-  // Check session every 5 minutes as backup
+  // Check session every 10 minutes — try refresh before showing expired
   window._sessionInterval = setInterval(async ()=>{
     const { data: { session } } = await SB.auth.getSession();
-    if(!session){ showSessionExpired(); }
-  }, 5 * 60 * 1000);
+    if(!session){
+      // Try refresh token before giving up
+      const storedRefresh = localStorage.getItem('bct_refresh');
+      if(storedRefresh && localStorage.getItem('bct_remember')==='1'){
+        const { data, error } = await SB.auth.refreshSession({ refresh_token: storedRefresh });
+        if(!error && data.session){
+          localStorage.setItem('bct_refresh', data.session.refresh_token);
+          return; // Successfully refreshed
+        }
+      }
+      showSessionExpired();
+    }
+  }, 10 * 60 * 1000);
 }
 
 function showSessionExpired(){
