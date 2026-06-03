@@ -2146,14 +2146,16 @@ async function addUnavailability(){
   const reason = document.getElementById('unavail-reason').value.trim();
   if(!from){ alert('Zadaj dátum Od.'); return; }
   if(to < from){ alert('Dátum Do musí byť rovnaký alebo neskorší ako Od.'); return; }
+  if(!unavailEditGuideId){ alert('Chyba: guide ID chyba. Zatvor modal a skus znova.'); return; }
   try {
-    const {error} = await SB.from('guide_unavailability').insert({guide_id: unavailEditGuideId, date_from: from, date_to: to, reason: reason||null});
-    if(error){ alert('Chyba ukladania: '+error.message+'\n\nKód: '+error.code); return; }
+    const {data, error} = await SB.from('guide_unavailability').insert({guide_id: unavailEditGuideId, date_from: from, date_to: to, reason: reason||null}).select();
+    if(error){ alert('Chyba ukladania: '+error.message+'\nKód: '+error.code+'\nHint: '+error.hint); return; }
+    if(!data || !data.length){ alert('Ulozene ale ziadne data vratene — skontroluj RLS policy.'); }
     document.getElementById('unavail-from').value = '';
     document.getElementById('unavail-to').value = '';
     document.getElementById('unavail-reason').value = '';
     await loadUnavailability(unavailEditGuideId);
-  } catch(e){ alert('Chyba: '+e.message); }
+  } catch(e){ alert('Vynimka: '+e.message); }
 }
 let historyCache = [];
 let historyPage = 1;
