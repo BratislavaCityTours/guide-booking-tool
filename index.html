@@ -2147,7 +2147,8 @@ async function addUnavailability(){
   if(!from){ alert('Zadaj dátum Od.'); return; }
   if(to < from){ alert('Dátum Do musí byť rovnaký alebo neskorší ako Od.'); return; }
   try {
-    await SB.from('guide_unavailability').insert({guide_id: unavailEditGuideId, date_from: from, date_to: to, reason});
+    const {error} = await SB.from('guide_unavailability').insert({guide_id: unavailEditGuideId, date_from: from, date_to: to, reason: reason||null});
+    if(error){ alert('Chyba ukladania: '+error.message+'\n\nKód: '+error.code); return; }
     document.getElementById('unavail-from').value = '';
     document.getElementById('unavail-to').value = '';
     document.getElementById('unavail-reason').value = '';
