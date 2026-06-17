@@ -986,36 +986,37 @@ function showApp(){
     })
     .subscribe();
 
-  // Monitor auth state changes
+  // Monitor auth state changes — always save latest refresh token
   SB.auth.onAuthStateChange((event, session)=>{
-    if(event === 'TOKEN_REFRESHED' && session){
-      // Update stored refresh token
-      if(localStorage.getItem('bct_remember')==='1' && session.refresh_token){
-        localStorage.setItem('bct_refresh', session.refresh_token);
-      }
-      return;
+    if(session && session.refresh_token && localStorage.getItem('bct_remember')==='1'){
+      localStorage.setItem('bct_refresh', session.refresh_token);
     }
-    // Only show expired banner on explicit SIGNED_OUT
     if(event === 'SIGNED_OUT'){
       showSessionExpired();
     }
   });
 
-  // Check session every 10 minutes — try refresh before showing expired
+  // Check session every 10 minutes
   window._sessionInterval = setInterval(async ()=>{
     const { data: { session } } = await SB.auth.getSession();
-    if(!session){
-      // Try refresh token before giving up
-      const storedRefresh = localStorage.getItem('bct_refresh');
-      if(storedRefresh && localStorage.getItem('bct_remember')==='1'){
-        const { data, error } = await SB.auth.refreshSession({ refresh_token: storedRefresh });
-        if(!error && data.session){
-          localStorage.setItem('bct_refresh', data.session.refresh_token);
-          return; // Successfully refreshed
-        }
+    if(session){
+      // Update refresh token
+      if(session.refresh_token && localStorage.getItem('bct_remember')==='1'){
+        localStorage.setItem('bct_refresh', session.refresh_token);
       }
-      showSessionExpired();
+      return;
     }
+    // Try stored refresh token
+    const storedRefresh = localStorage.getItem('bct_refresh');
+    if(storedRefresh && localStorage.getItem('bct_remember')==='1'){
+      const { data, error } = await SB.auth.refreshSession({ refresh_token: storedRefresh });
+      if(!error && data.session){
+        localStorage.setItem('bct_refresh', data.session.refresh_token);
+        return;
+      }
+      localStorage.removeItem('bct_refresh');
+    }
+    showSessionExpired();
   }, 10 * 60 * 1000);
 }
 
@@ -2699,7 +2700,7 @@ function parseBokun(){
   else if(pl.includes('2 hour')||pl.includes('2-hour')) tourType='walk2';
   else if(pl.includes('3 hour')||pl.includes('3-hour')) tourType='walk3';
 
-  const isViennaTour = pl.includes('vienna')&&pl.includes('lunch');
+  const isViennaTour = pl.includes('vienna') && (pl.includes('lunch') || pl.includes('coffee') || pl.includes('cake') || pl.includes('bus'));
 
   // Show warnings but continue
   if(warnings.length){
