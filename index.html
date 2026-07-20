@@ -2698,18 +2698,18 @@ function parseBokun(){
   else if(pl.includes('3 hour')||pl.includes('3-hour')) tourType='walk3';
 
   const isViennaTour = pl.includes('vienna') && (pl.includes('lunch') || pl.includes('coffee') || pl.includes('cake') || pl.includes('bus'));
+  const isCoffeeCake = pl.includes('coffee') || pl.includes('cake');
 
   // Show warnings but continue
   if(warnings.length){
     errEl.innerHTML = '⚠️ Import prebehol ale nieco treba skontrolovat:<br><strong>'+warnings.join('<br>')+'</strong>';
     errEl.style.display='block';
-    // Don't close modal yet — let user see warnings, then proceed
     setTimeout(()=>{
       document.getElementById('bokun-modal').remove();
       if(langs.length > 1){
-        showLangPicker(langs,(l)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:l,tourType,isViennaTour}));
+        showLangPicker(langs,(l)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:l,tourType,isViennaTour,isCoffeeCake}));
       } else {
-        applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour});
+        applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isCoffeeCake});
       }
     }, 2500);
     return;
@@ -2717,9 +2717,9 @@ function parseBokun(){
 
   document.getElementById('bokun-modal').remove();
   if(langs.length > 1){
-    showLangPicker(langs,(chosenLang)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:chosenLang,tourType,isViennaTour}));
+    showLangPicker(langs,(chosenLang)=>applyBokunData({customer,voucher,pax,isoDate,time,lang:chosenLang,tourType,isViennaTour,isCoffeeCake}));
   } else {
-    applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour});
+    applyBokunData({customer,voucher,pax,isoDate,time,lang:langs[0]||'EN',tourType,isViennaTour,isCoffeeCake});
   }
 }
 
@@ -2765,7 +2765,7 @@ function showLangPicker(langs, callback){
   modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
 }
 
-function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour}){
+function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isViennaTour,isCoffeeCake}){
 
   // Step 1: Only reset clients if NOT in amend mode
   if(!amendId){
@@ -2800,8 +2800,11 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
     if(isViennaTour){
       const ntEl=document.getElementById('cno'+targetId);
       if(ntEl){
-        ntEl.value='klienti maju polievku & halusky v Pulitzer SNP';
-        cData[targetId].note='klienti maju polievku & halusky v Pulitzer SNP';
+        const note = isCoffeeCake
+          ? 'klienti maju o 13:00 v Pulitzer SNP coffee & cake'
+          : 'klienti maju polievku & halusky v Pulitzer SNP';
+        ntEl.value=note;
+        cData[targetId].note=note;
       }
     }
   }
