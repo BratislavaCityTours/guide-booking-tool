@@ -582,7 +582,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
         <div style="position:relative;">
           <input type="text" id="h-search" placeholder="🔍  Hľadaj podľa mena klienta, vouchera, guide..." oninput="filterHistory()" style="padding-left:14px;font-size:14px;">
-          <button onclick="document.getElementById('h-search').value='';filterHistory();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);">×</button>
+          <button id="h-search-clear" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);">×</button>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
           <div style="display:flex;align-items:center;gap:6px;">
@@ -1118,7 +1118,13 @@ function nav(page){
   const btn=document.querySelector('.nb[onclick="nav(\''+page+'\')"]');
   if(btn)btn.classList.add('on');
   if(page==='guides')renderGuides();
-  if(page==='history')renderHistory();
+  if(page==='history'){
+    renderHistory();
+    setTimeout(()=>{
+      const clearBtn = document.getElementById('h-search-clear');
+      if(clearBtn) clearBtn.onclick = ()=>{ document.getElementById('h-search').value=''; filterHistory(); };
+    }, 100);
+  }
   if(page==='settings')loadPrices();
   if(page==='tickets')renderTickets();
   if(page==='compose')refreshGuides();
@@ -1822,20 +1828,37 @@ async function openPartialStorno(id, h){
   window._pstornoId = id;
   window._pstornoH = h;
 
-  // Show modal - use string concatenation to avoid template literal issues
+  // Show modal
   const modal = document.createElement('div');
   modal.id = 'pstorno-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
   const modalInner = document.createElement('div');
   modalInner.style.cssText = 'background:var(--bg);border-radius:var(--rl);padding:28px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;';
-  modalInner.innerHTML =
-    '<h3 style="margin:0 0 6px;">Ciastocne storno</h3>' +
-    '<p style="margin:0 0 16px;color:var(--text2);font-size:13px;">Vyber klientov ktorych chces stornovat:</p>' +
-    '<div id="pstorno-form">' + clientList + '</div>' +
-    '<div style="display:flex;gap:10px;margin-top:20px;">' +
-    '<button class="btn btn-p btn-fw" onclick="confirmPartialStorno()">Vygenerovat storno email</button>' +
-    '<button class="btn btn-g" onclick="document.getElementById(\'pstorno-modal\').remove()">Zrusit</button>' +
-    '</div>';
+  const h3 = document.createElement('h3');
+  h3.style.cssText = 'margin:0 0 6px;';
+  h3.textContent = 'Ciastocne storno';
+  modalInner.appendChild(h3);
+  const pText = document.createElement('p');
+  pText.style.cssText = 'margin:0 0 16px;color:var(--text2);font-size:13px;';
+  pText.textContent = 'Vyber klientov ktorych chces stornovat:';
+  modalInner.appendChild(pText);
+  const formDiv = document.createElement('div');
+  formDiv.id = 'pstorno-form';
+  formDiv.innerHTML = clientList;
+  modalInner.appendChild(formDiv);
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'btn btn-p btn-fw';
+  confirmBtn.textContent = 'Vygenerovat storno email';
+  confirmBtn.addEventListener('click', confirmPartialStorno);
+  const cancelBtn2 = document.createElement('button');
+  cancelBtn2.className = 'btn btn-g';
+  cancelBtn2.textContent = 'Zrusit';
+  cancelBtn2.addEventListener('click', ()=>document.getElementById('pstorno-modal').remove());
+  const btnRow2 = document.createElement('div');
+  btnRow2.style.cssText = 'display:flex;gap:10px;margin-top:20px;';
+  btnRow2.appendChild(confirmBtn);
+  btnRow2.appendChild(cancelBtn2);
+  modalInner.appendChild(btnRow2);
   modal.appendChild(modalInner);
   document.body.appendChild(modal);
   modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
@@ -2598,12 +2621,23 @@ function openBokun(){
     '<p style="margin:0 0 14px;color:var(--text2);font-size:13px;">Skopiruj a vloz cely text emailu z Bokunu:</p>' +
     '<textarea id="bokun-text" style="width:100%;height:220px;font-size:12px;font-family:monospace;padding:10px;border:1px solid var(--border);border-radius:var(--r);resize:vertical;" placeholder="Vloz sem text emailu z Bokunu..."></textarea>' +
     '<div id="bokun-error" style="display:none;margin-top:8px;font-size:12px;color:var(--danger);"></div>' +
-    '<div style="display:flex;gap:10px;margin-top:14px;">' +
-    '<button class="btn btn-p btn-fw" onclick="parseBokun()">Importovat</button>' +
-    '<button class="btn btn-g" onclick="document.getElementById(\'bokun-modal\').remove()">Zrusit</button>' +
+    '<div style="display:flex;gap:10px;margin-top:14px;" id="bokun-btn-row">' +
     '</div>';
   modal.appendChild(inner);
   document.body.appendChild(modal);
+  const btnRow = document.getElementById('bokun-btn-row');
+  if(btnRow){
+    const importBtn = document.createElement('button');
+    importBtn.className = 'btn btn-p btn-fw';
+    importBtn.textContent = 'Importovat';
+    importBtn.addEventListener('click', parseBokun);
+    const cancelBokunBtn = document.createElement('button');
+    cancelBokunBtn.className = 'btn btn-g';
+    cancelBokunBtn.textContent = 'Zrusit';
+    cancelBokunBtn.addEventListener('click', ()=>{ const m=document.getElementById('bokun-modal'); if(m)m.remove(); });
+    btnRow.appendChild(importBtn);
+    btnRow.appendChild(cancelBokunBtn);
+  }
   modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
   setTimeout(()=>{ const t=document.getElementById('bokun-text'); if(t)t.focus(); }, 100);
 }
