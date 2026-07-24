@@ -1021,12 +1021,17 @@ function showApp(){
 }
 
 function showSessionExpired(){
-  // Only show once
   if(document.getElementById('session-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'session-banner';
   banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;padding:14px 20px;text-align:center;font-size:14px;font-weight:500;';
-  banner.innerHTML = '⚠️ Prihlásenie vypršalo. <button onclick="window.location.reload()" style="background:#fff;color:#c0392b;border:none;padding:6px 14px;border-radius:6px;font-weight:600;cursor:pointer;margin-left:10px;">Prihlásiť sa znova</button>';
+  const text = document.createTextNode('⚠️ Prihlásenie vypršalo. ');
+  banner.appendChild(text);
+  const btn = document.createElement('button');
+  btn.textContent = 'Prihlásiť sa znova';
+  btn.style.cssText = 'background:#fff;color:#c0392b;border:none;padding:6px 14px;border-radius:6px;font-weight:600;cursor:pointer;margin-left:10px;';
+  btn.addEventListener('click', ()=>window.location.reload());
+  banner.appendChild(btn);
   document.body.prepend(banner);
 }
 
@@ -2349,16 +2354,34 @@ function showNotif(title, body, onView){
   const container = document.getElementById('notif-container');
   const notif = document.createElement('div');
   notif.className = 'notif';
-  notif.innerHTML = `
-    <div class="notif-title">${esc(title)}</div>
-    <div class="notif-body">${esc(body)}</div>
-    <div class="notif-actions">
-      <button class="notif-btn" id="notif-view-btn">Zobrazit</button>
-      <button class="notif-btn" onclick="this.closest('.notif').remove()">×</button>
-    </div>`;
-  notif.querySelector('#notif-view-btn').onclick = ()=>{ notif.remove(); if(onView)onView(); };
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'notif-title';
+  titleEl.textContent = title;
+  notif.appendChild(titleEl);
+
+  const bodyEl = document.createElement('div');
+  bodyEl.className = 'notif-body';
+  bodyEl.textContent = body;
+  notif.appendChild(bodyEl);
+
+  const actions = document.createElement('div');
+  actions.className = 'notif-actions';
+
+  const viewBtn = document.createElement('button');
+  viewBtn.className = 'notif-btn';
+  viewBtn.textContent = 'Zobrazit';
+  viewBtn.addEventListener('click', ()=>{ notif.remove(); if(onView)onView(); });
+  actions.appendChild(viewBtn);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'notif-btn';
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', ()=>notif.remove());
+  actions.appendChild(closeBtn);
+
+  notif.appendChild(actions);
   container.appendChild(notif);
-  // Auto-remove after 8 seconds
   setTimeout(()=>{ if(notif.parentNode) notif.remove(); }, 8000);
 }
 
