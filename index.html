@@ -2870,14 +2870,17 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
     const cvEl=document.getElementById('cv'+targetId);
     if(cvEl){cvEl.value=voucher;cData[targetId].voucher=voucher;}
     if(isViennaTour){
+      const note = isCoffeeCake
+        ? 'klienti maju o 13:00 v Pulitzer SNP coffee & cake'
+        : 'klienti maju polievku & halusky v Pulitzer SNP';
+      cData[targetId].note = note;
       const ntEl=document.getElementById('cno'+targetId);
-      if(ntEl){
-        const note = isCoffeeCake
-          ? 'klienti maju o 13:00 v Pulitzer SNP coffee & cake'
-          : 'klienti maju polievku & halusky v Pulitzer SNP';
-        ntEl.value=note;
-        cData[targetId].note=note;
-      }
+      if(ntEl) ntEl.value=note;
+      // Also set after timeout in case DOM not ready yet
+      setTimeout(()=>{
+        const ntEl2=document.getElementById('cno'+targetId);
+        if(ntEl2) ntEl2.value=note;
+      }, 150);
     }
   }
 
