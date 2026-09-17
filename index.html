@@ -1736,6 +1736,13 @@ async function openStorno(id, h){
 
   stornoId = id;
   if(h.sender_key){ document.getElementById('f-sender').value=h.sender_key; onSender(); }
+  // Restore guide
+  if(h.guide_id){
+    refreshGuides().then(()=>{
+      document.getElementById('f-guide').value=h.guide_id;
+      onGuide();
+    });
+  }
 
   const sender = getSender();
   if(!sender){ alert('Vyber objednavatela v compose.'); nav('compose'); return; }
@@ -1990,6 +1997,14 @@ async function confirmPartialStorno(){
   if(outlookBtn){ outlookBtn.href='#'; outlookBtn.onclick=openOutlook; }
 
   nav('compose');
+  // Restore sender and guide
+  if(h.sender_key){ document.getElementById('f-sender').value=h.sender_key; onSender(); }
+  if(h.guide_id){
+    refreshGuides().then(()=>{
+      document.getElementById('f-guide').value=h.guide_id;
+      onGuide();
+    });
+  }
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 }
 
