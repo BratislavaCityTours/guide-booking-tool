@@ -335,6 +335,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
             <option value="ES">Spanielcina</option>
             <option value="FR">Francuzstina</option>
             <option value="IT">Taliancina</option>
+            <option value="RU">Rustina</option>
           </select>
           <div class="pbox" style="margin-top:13px;">
             <div>
@@ -354,6 +355,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
             <option value="ES">Spanielcina</option>
             <option value="FR">Francuzstina</option>
             <option value="IT">Taliancina</option>
+            <option value="RU">Rustina</option>
           </select>
           <div class="pbox" style="margin-top:13px;">
             <div><div class="pbox-l">Cena · Walking Tour · 1,5 hod</div><div class="pbox-s" id="w15-sub">Anglictina</div></div>
@@ -370,6 +372,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
             <option value="ES">Spanielcina</option>
             <option value="FR">Francuzstina</option>
             <option value="IT">Taliancina</option>
+            <option value="RU">Rustina</option>
           </select>
           <div class="pbox" style="margin-top:13px;">
             <div><div class="pbox-l">Cena · Walking Tour · 2 hod</div><div class="pbox-s" id="w2-sub">Anglictina</div></div>
@@ -386,6 +389,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
             <option value="ES">Spanielcina</option>
             <option value="FR">Francuzstina</option>
             <option value="IT">Taliancina</option>
+            <option value="RU">Rustina</option>
           </select>
           <div class="pbox" style="margin-top:13px;">
             <div><div class="pbox-l">Cena · Walking Tour · 3 hod</div><div class="pbox-s" id="w3-sub">Anglictina</div></div>
@@ -402,6 +406,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
             <option value="ES">Španielčina</option>
             <option value="FR">Francúzština</option>
             <option value="IT">Taliančina</option>
+            <option value="RU">Ruština</option>
           </select>
           <div class="pbox" style="margin-top:13px;">
             <div><div class="pbox-l">Grand City Tour · 3 hodiny</div><div class="pbox-s" id="gct-sub">Angličtina</div></div>
@@ -418,6 +423,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
             <option value="ES">Španielčina</option>
             <option value="FR">Francúzština</option>
             <option value="IT">Taliančina</option>
+            <option value="RU">Ruština</option>
           </select>
           <div class="pbox" style="margin-top:13px;">
             <div>
@@ -440,6 +446,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
             <option value="ES">Spanielcina</option>
             <option value="FR">Francuzstina</option>
             <option value="IT">Taliancina</option>
+            <option value="RU">Rustina</option>
           </select>
           <div class="pbox" style="margin-top:13px;">
             <div>
@@ -459,6 +466,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
             <option value="ES">Spanielcina</option>
             <option value="FR">Francuzstina</option>
             <option value="IT">Taliancina</option>
+            <option value="RU">Rustina</option>
           </select>
           <div class="pbox" style="margin-top:13px;">
             <div>
@@ -739,8 +747,8 @@ function onSender() {
 function getSender() { const k=document.getElementById('f-sender').value; return k?SENDERS[k]:null; }
 
 // ── Pricing ───────────────────────────────────────────────
-const LANG_SK = { EN:'Anglictina', DE:'Nemcina', ES:'Spanielcina', FR:'Francuzstina', IT:'Taliancina' };
-const LANG_EN = { EN:'English', DE:'German', ES:'Spanish', FR:'French', IT:'Italian' };
+const LANG_SK = { EN:'Anglictina', DE:'Nemcina', ES:'Spanielcina', FR:'Francuzstina', IT:'Taliancina', RU:'Rustina' };
+const LANG_EN = { EN:'English', DE:'German', ES:'Spanish', FR:'French', IT:'Italian', RU:'Russian' };
 
 // ── Prices — FALLBACK only (overridden by Supabase on startup) ─────────────
 // These are default values used ONLY when offline or Supabase is unavailable.
@@ -752,16 +760,17 @@ const WALK_TIERS = {
   DE: [{max:1,p:26},{max:2,p:34},{max:5,p:40},{max:9,p:44},{max:999,p:46}],
   ES: [{max:1,p:44},{max:2,p:50},{max:5,p:58},{max:9,p:66},{max:999,p:70}],
   FR: [{max:1,p:44},{max:2,p:50},{max:5,p:58},{max:9,p:66},{max:999,p:70}],
-  IT: [{max:1,p:44},{max:2,p:50},{max:5,p:58},{max:9,p:66},{max:999,p:70}]
+  IT: [{max:1,p:44},{max:2,p:50},{max:5,p:58},{max:9,p:66},{max:999,p:70}],
+  RU: [{max:1,p:44},{max:2,p:50},{max:5,p:58},{max:9,p:66},{max:999,p:70}]
 };
-const GCT_P = { EN:78, DE:78, ES:125, FR:125, IT:125 };
+const GCT_P = { EN:78, DE:78, ES:125, FR:125, IT:125, RU:125 };
 const FIXED_WALK_P = {
-  walk15: { EN:50, DE:50, ES:66, FR:66, IT:66 },
-  walk2:  { EN:55, DE:55, ES:88, FR:88, IT:88 },
-  walk3:  { EN:78, DE:78, ES:125, FR:125, IT:125 }
+  walk15: { EN:50, DE:50, ES:66, FR:66, IT:66, RU:66 },
+  walk2:  { EN:55, DE:55, ES:88, FR:88, IT:88, RU:88 },
+  walk3:  { EN:78, DE:78, ES:125, FR:125, IT:125, RU:125 }
 };
-const WINE_P = { EN:125, DE:125, ES:210, FR:210, IT:210 };
-const DEVIN_P = { EN:110, DE:110, ES:190, FR:190, IT:190 };
+const WINE_P = { EN:125, DE:125, ES:210, FR:210, IT:210, RU:210 };
+const DEVIN_P = { EN:110, DE:110, ES:190, FR:190, IT:190, RU:190 };
 
 function updateWinePrice(){
   const lang = document.getElementById('wine-lang').value;
@@ -1909,8 +1918,8 @@ async function confirmPartialStorno(){
     'gct-auto':'Bratislava Grand City Tour vlastnym autom',
     wine:'Malokarpatsky vinny okruh',devin:'Bratislava Grand City Tour with Devin Castle'
   };
-  const langSk = {EN:'Anglictina',DE:'Nemcina',ES:'Spanielcina',FR:'Francuzstina',IT:'Taliancina'}[h.lang]||h.lang||'';
-  const langEn = {EN:'English',DE:'German',ES:'Spanish',FR:'French',IT:'Italian'}[h.lang]||h.lang||'';
+  const langSk = {EN:'Anglictina',DE:'Nemcina',ES:'Spanielcina',FR:'Francuzstina',IT:'Taliancina',RU:'Rustina'}[h.lang]||h.lang||'';
+  const langEn = {EN:'English',DE:'German',ES:'Spanish',FR:'French',IT:'Italian',RU:'Russian'}[h.lang]||h.lang||'';
   const svcLbl = svcLblMap[h.service_type]||'pesia prehliadka Bratislavy';
 
   const lines = [];
@@ -2753,7 +2762,7 @@ function parseBokun(){
   }
 
   // Language
-  const langMap={'english':'EN','anglictina':'EN','eng':'EN','german':'DE','nemcina':'DE','deu':'DE','ger':'DE','spanish':'ES','spanielcina':'ES','esp':'ES','french':'FR','francuzstina':'FR','fre':'FR','fra':'FR','italian':'IT','taliancina':'IT','ita':'IT'};
+  const langMap={'english':'EN','anglictina':'EN','eng':'EN','german':'DE','nemcina':'DE','deu':'DE','ger':'DE','spanish':'ES','spanielcina':'ES','esp':'ES','french':'FR','francuzstina':'FR','fre':'FR','fra':'FR','italian':'IT','taliancina':'IT','ita':'IT','russian':'RU','rustina':'RU','rus':'RU'};
   const langSrc = (guidedLang||rate||'').replace(/\(Guided language:\s*/i,'').replace(/\)/,'');
   const langParts = langSrc.split(/[,\s\/]+/).map(l=>langMap[l.trim().toLowerCase()]).filter(Boolean);
   const langs = [...new Set(langParts)];
@@ -2796,7 +2805,7 @@ function parseBokun(){
 }
 
 function showLangPicker(langs, callback){
-  const names={EN:'Anglictina',DE:'Nemcina',ES:'Spanielcina',FR:'Francuzstina',IT:'Taliancina'};
+  const names={EN:'Anglictina',DE:'Nemcina',ES:'Spanielcina',FR:'Francuzstina',IT:'Taliancina',RU:'Rustina'};
   const modal=document.createElement('div');
   modal.id='lang-picker-modal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
@@ -2951,20 +2960,21 @@ function applyPricesToApp(data){
   if(p['walk1_ES_1']) WALK_TIERS['ES'] = [{max:1,p:p['walk1_ES_1']},{max:2,p:p['walk1_ES_2']||50},{max:5,p:p['walk1_ES_5']||58},{max:9,p:p['walk1_ES_9']||66},{max:999,p:p['walk1_ES_10']||70}];
   if(p['walk1_ES_1']) WALK_TIERS['FR'] = [...WALK_TIERS['ES']];
   if(p['walk1_ES_1']) WALK_TIERS['IT'] = [...WALK_TIERS['ES']];
+  if(p['walk1_ES_1']) WALK_TIERS['RU'] = [...WALK_TIERS['ES']];
 
   // Fixed prices
   if(p['walk15_EN']){ FIXED_WALK_P.walk15['EN']=p['walk15_EN']; FIXED_WALK_P.walk15['DE']=p['walk15_EN']; }
-  if(p['walk15_ES']){ FIXED_WALK_P.walk15['ES']=p['walk15_ES']; FIXED_WALK_P.walk15['FR']=p['walk15_ES']; FIXED_WALK_P.walk15['IT']=p['walk15_ES']; }
+  if(p['walk15_ES']){ FIXED_WALK_P.walk15['ES']=p['walk15_ES']; FIXED_WALK_P.walk15['FR']=p['walk15_ES']; FIXED_WALK_P.walk15['IT']=p['walk15_ES']; FIXED_WALK_P.walk15['RU']=p['walk15_ES']; }
   if(p['walk2_EN']){ FIXED_WALK_P.walk2['EN']=p['walk2_EN']; FIXED_WALK_P.walk2['DE']=p['walk2_EN']; }
-  if(p['walk2_ES']){ FIXED_WALK_P.walk2['ES']=p['walk2_ES']; FIXED_WALK_P.walk2['FR']=p['walk2_ES']; FIXED_WALK_P.walk2['IT']=p['walk2_ES']; }
+  if(p['walk2_ES']){ FIXED_WALK_P.walk2['ES']=p['walk2_ES']; FIXED_WALK_P.walk2['FR']=p['walk2_ES']; FIXED_WALK_P.walk2['IT']=p['walk2_ES']; FIXED_WALK_P.walk2['RU']=p['walk2_ES']; }
   if(p['walk3_EN']){ FIXED_WALK_P.walk3['EN']=p['walk3_EN']; FIXED_WALK_P.walk3['DE']=p['walk3_EN']; }
-  if(p['walk3_ES']){ FIXED_WALK_P.walk3['ES']=p['walk3_ES']; FIXED_WALK_P.walk3['FR']=p['walk3_ES']; FIXED_WALK_P.walk3['IT']=p['walk3_ES']; }
+  if(p['walk3_ES']){ FIXED_WALK_P.walk3['ES']=p['walk3_ES']; FIXED_WALK_P.walk3['FR']=p['walk3_ES']; FIXED_WALK_P.walk3['IT']=p['walk3_ES']; FIXED_WALK_P.walk3['RU']=p['walk3_ES']; }
   if(p['gct_EN']){ GCT_P['EN']=p['gct_EN']; GCT_P['DE']=p['gct_EN']; }
-  if(p['gct_ES']){ GCT_P['ES']=p['gct_ES']; GCT_P['FR']=p['gct_ES']; GCT_P['IT']=p['gct_ES']; }
+  if(p['gct_ES']){ GCT_P['ES']=p['gct_ES']; GCT_P['FR']=p['gct_ES']; GCT_P['IT']=p['gct_ES']; GCT_P['RU']=p['gct_ES']; }
   if(p['wine_EN']){ WINE_P['EN']=p['wine_EN']; WINE_P['DE']=p['wine_EN']; }
-  if(p['wine_ES']){ WINE_P['ES']=p['wine_ES']; WINE_P['FR']=p['wine_ES']; WINE_P['IT']=p['wine_ES']; }
+  if(p['wine_ES']){ WINE_P['ES']=p['wine_ES']; WINE_P['FR']=p['wine_ES']; WINE_P['IT']=p['wine_ES']; WINE_P['RU']=p['wine_ES']; }
   if(p['devin_EN']){ DEVIN_P['EN']=p['devin_EN']; DEVIN_P['DE']=p['devin_EN']; }
-  if(p['devin_ES']){ DEVIN_P['ES']=p['devin_ES']; DEVIN_P['FR']=p['devin_ES']; DEVIN_P['IT']=p['devin_ES']; }
+  if(p['devin_ES']){ DEVIN_P['ES']=p['devin_ES']; DEVIN_P['FR']=p['devin_ES']; DEVIN_P['IT']=p['devin_ES']; DEVIN_P['RU']=p['devin_ES']; }
 }
 
 async function savePrices(){
