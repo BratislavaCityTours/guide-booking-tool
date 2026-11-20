@@ -2299,7 +2299,19 @@ function filterHistory(){
     // Check if any client has tickets
     let cn2=[]; try{cn2=JSON.parse(h.clients||'[]');}catch{}
     const hasTickets = ['walk1','gct','combo','gct-auto'].includes(h.service_type) && cn2.some(c=>c.ticket_tam||c.ticket_spat);
-    const clientDisplay=cn.map(n=>q&&n.toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(n)+'</mark>':esc(n)).join(', ')||'—';
+    // Per-client tour type label
+    const cliSvcLbl=(c)=>{
+      if(h.service_type==='combo'||h.service_type==='gct-auto') return (c&&c.tour_type==='gct')?'GCT':'1 hod';
+      return st;
+    };
+    const tagStyle='display:inline-block;margin-left:4px;padding:1px 5px;border-radius:4px;background:var(--blue-l);color:var(--blue);font-size:10px;font-family:var(--mono);vertical-align:middle;';
+    const activeCl=cn2.filter(c=>!c.cancelled);
+    const cliList=activeCl.length?activeCl:cn.map(n=>({name:n}));
+    const clientDisplay=cliList.map(c=>{
+      const nm=c.name||'—';
+      const hl=q&&nm.toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(nm)+'</mark>':esc(nm);
+      return hl+'<span style="'+tagStyle+'">'+esc(cliSvcLbl(c))+'</span>';
+    }).join(', ')||'—';
     const guideDisplay=q&&(h.guide_name||'').toLowerCase().includes(q)?'<mark style="background:#fff3cd;border-radius:2px;">'+esc(h.guide_name||'—')+'</mark>':esc(h.guide_name||'—');
     return `<div class="hi">
       <div class="hd">${h.date?fmtDate(h.date):'—'}<br>${new Date(h.created_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:var(--text3);font-size:10px;">${esc(h.sender_name||'')}</span></div>
