@@ -1208,6 +1208,7 @@ async function delGuide(id){
 
 function ini(n){return n.split(' ').filter(Boolean).map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 let guidesCache=[];
+let wantGuideId=null;  // guide to keep selected across refreshes (amend/storno)
 
 async function renderGuides(){
   const el=document.getElementById('glist');
@@ -1257,7 +1258,21 @@ async function refreshGuides(){
     guidesCache=data||[];
     const cur=document.getElementById('f-guide').value;
     filterGuideSelect();
-    if(cur)document.getElementById('f-guide').value=cur;
+    const want=wantGuideId||cur;
+    if(want){
+      const sel=document.getElementById('f-guide');
+      sel.value=want;
+      if(sel.value!==want){
+        // guide not in current (filtered) list — add it back so it stays selected
+        const g=guidesCache.find(x=>x.id===want);
+        const opt=document.createElement('option');
+        opt.value=want;
+        opt.textContent=g?g.name:'(povodny guide)';
+        if(g){opt.dataset.name=g.name;opt.dataset.email=g.email||'';opt.dataset.phone=g.phone||'';}
+        sel.appendChild(opt);
+        sel.value=want;
+      }
+    }
     onGuide();
   } catch(e){ console.error('refreshGuides error:',e.message); }
 }
@@ -1643,6 +1658,7 @@ async function saveHist(){
 }
 
 function resetForm(){
+  wantGuideId=null;
   cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';window._stornoGuideEmail=null;
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
@@ -1683,7 +1699,9 @@ function openAmend(id, h){
     const lsel=document.getElementById(lselId[h.service_type]||'w1-lang');
     if(lsel)lsel.value=h.lang;
   }
-  refreshGuides().then(()=>{if(h.guide_id){document.getElementById('f-guide').value=h.guide_id;onGuide();}});
+  wantGuideId = h.guide_id || null;
+  const gs=document.getElementById('guide-search'); if(gs) gs.value='';
+  refreshGuides();
   let cl=[];try{cl=JSON.parse(h.clients||'[]');}catch{}
   if(cl.length)cl.forEach(c=>addClient(c));else addClient();
   document.getElementById('abanner').style.display='flex';
@@ -1723,6 +1741,7 @@ async function openCopyNew(h){
     const lsel=document.getElementById(lselId[h.service_type]||'w1-lang');
     if(lsel)lsel.value=h.lang;
   }
+  wantGuideId=null;
   refreshGuides().then(()=>{
     // Clear guide — user must select new one
     document.getElementById('f-guide').value='';
@@ -1747,10 +1766,8 @@ async function openStorno(id, h){
   if(h.sender_key){ document.getElementById('f-sender').value=h.sender_key; onSender(); }
   // Restore guide
   if(h.guide_id){
-    refreshGuides().then(()=>{
-      document.getElementById('f-guide').value=h.guide_id;
-      onGuide();
-    });
+    wantGuideId=h.guide_id;
+    refreshGuides();
   }
 
   const sender = getSender();
@@ -2009,10 +2026,8 @@ async function confirmPartialStorno(){
   // Restore sender and guide
   if(h.sender_key){ document.getElementById('f-sender').value=h.sender_key; onSender(); }
   if(h.guide_id){
-    refreshGuides().then(()=>{
-      document.getElementById('f-guide').value=h.guide_id;
-      onGuide();
-    });
+    wantGuideId=h.guide_id;
+    refreshGuides();
   }
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 }
