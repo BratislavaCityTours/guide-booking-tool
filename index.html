@@ -540,7 +540,7 @@ input:disabled,select:disabled{opacity:0.4;cursor:not-allowed;background:var(--s
           <div style="flex:1;">
             <label>Vyber guide</label>
             <input type="text" id="guide-search" placeholder="🔍 Hladaj sprievodcu..." oninput="filterGuideSelect()" style="margin-bottom:6px;">
-            <select id="f-guide" onchange="onGuide()" size="1">
+            <select id="f-guide" onchange="wantGuideId=this.value||null;onGuide()" size="1">
               <option value="">— Vyber guide —</option>
             </select>
           </div>
@@ -734,6 +734,10 @@ const SENDERS = {
   katarina: { name:'Katarina Stanik',    email:'kstanik@e-travel.sk',    phone:'+421 905 809 300' }
 };
 
+// IDs from the database can be numbers, but HTML attributes / <select> values
+// are always strings. Compare them as strings so lookups never fail.
+function sameId(a,b){ return a!=null && b!=null && String(a)===String(b); }
+
 function onSender() {
   const key = document.getElementById('f-sender').value;
   const info = document.getElementById('sender-info');
@@ -771,6 +775,9 @@ const FIXED_WALK_P = {
 };
 const WINE_P = { EN:125, DE:125, ES:210, FR:210, IT:210, RU:210 };
 const DEVIN_P = { EN:110, DE:110, ES:190, FR:190, IT:190, RU:190 };
+
+// Which language <select> belongs to which service type
+const LANG_SEL = { walk1:'w1-lang', walk15:'w15-lang', walk2:'w2-lang', walk3:'w3-lang', gct:'gct-lang', combo:'combo-lang', wine:'wine-lang', devin:'devin-lang' };
 
 function updateWinePrice(){
   const lang = document.getElementById('wine-lang').value;
@@ -1118,19 +1125,20 @@ function resetConfig(){if(!confirm('Zmeniť pripojenie?'))return;localStorage.re
 // ── Navigation ────────────────────────────────────────────
 function mobileNav(page){
   nav(page);
-  // Update mobile nav buttons
-  ['compose','guides','history','settings'].forEach(p=>{
-    const btn=document.getElementById('mn-'+p);
-    if(btn) btn.classList.toggle('on', p===page);
-  });
 }
 
 function nav(page){
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   document.getElementById('pg-'+page).classList.add('on');
-  const btn=document.querySelector('.nb[onclick="nav(\''+page+'\')"]');
+  // $= so that "resetForm();nav('compose')" also matches
+  const btn=document.querySelector('.nb[onclick$="nav(\''+page+'\')"]');
   if(btn)btn.classList.add('on');
+  // Keep the mobile bottom bar in sync too (also when nav() is called from code)
+  ['compose','guides','history','settings'].forEach(p=>{
+    const mb=document.getElementById('mn-'+p);
+    if(mb) mb.classList.toggle('on', p===page);
+  });
   if(page==='guides')renderGuides();
   if(page==='history'){
     renderHistory();
@@ -1208,7 +1216,7 @@ async function delGuide(id){
 
 function ini(n){return n.split(' ').filter(Boolean).map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 let guidesCache=[];
-let wantGuideId=null;  // guide to keep selected across refreshes (amend/storno)
+let wantGuideId=null;  // guide to keep selected across refreshes (amend/storno) — always a string
 
 async function renderGuides(){
   const el=document.getElementById('glist');
@@ -1247,6 +1255,7 @@ function filterGuideSelect(){
   // Auto-select if only one result
   if(filtered.length===1 && q){
     sel.value = filtered[0].id;
+    wantGuideId = String(filtered[0].id);
     onGuide();
   }
 }
@@ -1258,13 +1267,13 @@ async function refreshGuides(){
     guidesCache=data||[];
     const cur=document.getElementById('f-guide').value;
     filterGuideSelect();
-    const want=wantGuideId||cur;
+    const want=wantGuideId!=null?String(wantGuideId):cur;
     if(want){
       const sel=document.getElementById('f-guide');
       sel.value=want;
       if(sel.value!==want){
         // guide not in current (filtered) list — add it back so it stays selected
-        const g=guidesCache.find(x=>x.id===want);
+        const g=guidesCache.find(x=>sameId(x.id,want));
         const opt=document.createElement('option');
         opt.value=want;
         opt.textContent=g?g.name:'(povodny guide)';
@@ -1283,8 +1292,8 @@ function onGuide(){
   document.getElementById('guide-info-txt').textContent=(opt.dataset.name||opt.text)+([opt.dataset.email,opt.dataset.phone].filter(Boolean).map(x=>' · '+x).join(''));
   info.style.display='block';
   updateWalkPrice();updateCombo();
-  // Check availability when guide or date changes
-  if(!amendId) checkGuideAvailability();
+  // Check availability when guide or date changes (in amend mode the booking itself is skipped)
+  checkGuideAvailability();
 }
 function getGuideName(){const sel=document.getElementById('f-guide'),opt=sel.options[sel.selectedIndex];return sel.value?(opt.dataset.name||opt.text):'Guide';}
 function getGuideEmail(){const sel=document.getElementById('f-guide'),opt=sel.options[sel.selectedIndex];return sel.value?(opt.dataset.email||''):'';}
@@ -1306,7 +1315,7 @@ function addClient(pre){
 function setTourType(id,type){
   cData[id].tour_type=type;
   renderCB(id);
-  updateCombo();
+  updatePrices();
 }
 
 function renderCB(id){
@@ -1407,17 +1416,18 @@ function chPax(id,d){const n=Math.max(1,(parseInt(cData[id].pax)||1)+d);cData[id
 function cancelC(id){cData[id].cancelled=true;renderCB(id);updatePrices();}
 function reinstate(id){cData[id].cancelled=false;renderCB(id);updatePrices();}
 function removeC(id){cIds=cIds.filter(x=>x!==id);delete cData[id];const e=document.getElementById('cb'+id);if(e)e.remove();renum();updatePrices();}
-function renum(){cIds.forEach((id,i)=>{const b=document.getElementById('cbn'+id);if(b)b.textContent=(cData[id].cancelled?'STORNO · ':'')+'Klient '+(i+1);});}
+// Re-render all client boxes so numbers AND the Walking/GCT labels stay correct
+function renum(){cIds.forEach(id=>renderCB(id));}
 
 // ── Generate ──────────────────────────────────────────────
-let amendId=null,stornoId=null,lastTxt='',lastSubj='';
+let amendId=null,stornoId=null,lastTxt='',lastSubj='',lastSavedTxt='';
 function gv(id){const e=document.getElementById(id);return e?e.value.trim():'';}
 function fmtDate(d){if(!d)return'';const[y,m,day]=d.split('-');return`${day}.${m}.${y}`;}
 function updateDateDisplay(){
   const d = gv('f-date');
   const el = document.getElementById('date-display');
   if(el) el.textContent = d ? '📅 ' + fmtDate(d) : '';
-  if(!amendId && document.getElementById('f-guide').value) checkGuideAvailability();
+  if(document.getElementById('f-guide').value) checkGuideAvailability();
 }
 
 function buildSubject(isAmend){
@@ -1505,9 +1515,6 @@ function generate(){
   let cn=0; const storno=[];
   // For combo/gct-auto, show GCT clients first, then Walking clients
   const isComboLike = svc==='combo'||svc==='gct-auto';
-  const orderedIds = isComboLike
-    ? [...cIds.filter(id=>!cData[id].cancelled&&cData[id].tour_type==='gct'), ...cIds.filter(id=>!cData[id].cancelled&&(cData[id].tour_type||'walk')==='walk'), ...cIds.filter(id=>cData[id].cancelled)]
-    : cIds;
 
   if(isComboLike){
     const gctIds=cIds.filter(id=>!cData[id].cancelled&&cData[id].tour_type==='gct');
@@ -1619,6 +1626,8 @@ function copyTxt(){
 async function saveHist(){
   if(!lastTxt)return;
   if(stornoId){ alert('Storno sa uklada automaticky — nie je potrebne ukladat znova.'); return; }
+  // Prevent saving the same email twice (double click = duplicate booking)
+  if(lastTxt===lastSavedTxt){ alert('Tento email je uz ulozeny.'); return; }
   const sel=document.getElementById('f-guide'),opt=sel.options[sel.selectedIndex];
   const senderKey=document.getElementById('f-sender').value;
   const row={
@@ -1633,25 +1642,30 @@ async function saveHist(){
     end_guide:gv('f-end-guide'),
     duration:gv('f-dur'),
     payment:gv('f-pay'),
-    car_meeting:gv('f-car')||gv('f-car2'),
+    car_meeting:svc==='combo'?gv('f-car2'):gv('f-car'),
     walk_end:gv('f-walk-end'),
     end2:gv('f-end2'),
     text:lastTxt,
     subject:lastSubj,
     clients:JSON.stringify(cIds.map(id=>({...cData[id]}))),
     client_names:JSON.stringify(cIds.filter(id=>!cData[id].cancelled).map(id=>cData[id].name).filter(Boolean)),
-    is_amendment:!!amendId,
-    created_at:new Date().toISOString()
+    is_amendment:!!amendId
   };
   try {
     if(amendId){
+      // Amendment: keep the original created_at, only update the content
       const{error}=await SB.from('bookings').update(row).eq('id',amendId);
       if(error){alert('Chyba ukladania: '+error.message);return;}
+      const i=historyCache.findIndex(x=>sameId(x.id,amendId));
+      if(i!==-1) historyCache[i]={...historyCache[i],...row};
+      lastSavedTxt=lastTxt;
       alert('Zmena ulozena!');
     } else {
+      row.created_at=new Date().toISOString();
       window._lastSavedAt = Date.now();
       const{error}=await SB.from('bookings').insert(row);
       if(error){alert('Chyba ukladania: '+error.message);return;}
+      lastSavedTxt=lastTxt;
       alert('Ulozene do historie!');
     }
   } catch(e){ alert('Chyba: '+e.message); }
@@ -1659,12 +1673,14 @@ async function saveHist(){
 
 function resetForm(){
   wantGuideId=null;
-  cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';window._stornoGuideEmail=null;
+  cIds=[];cCnt=0;cData={};amendId=null;stornoId=null;lastTxt='';lastSubj='';lastSavedTxt='';window._stornoGuideEmail=null;
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
   removeGuideWarning();
   ['f-date','f-meet','f-end-guide','f-car','f-car2','f-walk-end','f-end2'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('date-display').textContent='';
+  document.getElementById('f-pay').value='FAKTURA NA ETRAVEL';
   document.getElementById('f-guide').value='';
   document.getElementById('guide-search').value='';
   document.getElementById('f-sender').value='';
@@ -1677,33 +1693,49 @@ function resetForm(){
   onGuide();setSvc('walk1');addClient();
 }
 
-function openAmend(id, h){
-  if(!h){ alert('Chyba: zaznam nenajdeny. Obnov stranku (F5) a skus znova.'); return; }
-  cIds=[];cCnt=0;cData={};lastTxt='';lastSubj='';
-  amendId=id; stornoId=null;
+// Fill the compose form from a saved booking (used by Zmena and Kopirovat ako nova).
+// Clears every field first so nothing from the previous email stays behind.
+function fillFormFromBooking(h){
+  cIds=[];cCnt=0;cData={};lastTxt='';lastSubj='';lastSavedTxt='';window._stornoGuideEmail=null;
   document.getElementById('clist').innerHTML='';
   document.getElementById('out').style.display='none';
   document.getElementById('out-acts').style.display='none';
-  if(h.date){document.getElementById('f-date').value=h.date;updateDateDisplay();}
-  if(h.meeting)document.getElementById('f-meet').value=h.meeting;
-  if(h.end_guide)document.getElementById('f-end-guide').value=h.end_guide||'';
-  if(h.duration)document.getElementById('f-dur').value=h.duration;
-  if(h.payment)document.getElementById('f-pay').value=h.payment;
-  if(h.car_meeting){const el=document.getElementById('f-car')||document.getElementById('f-car2');if(el)el.value=h.car_meeting;}
-  if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
-  if(h.end2)document.getElementById('f-end2').value=h.end2||'';
-  if(h.sender_key){document.getElementById('f-sender').value=h.sender_key;onSender();}
-  if(h.service_type)setSvc(h.service_type);
-  if(h.lang){
-    const lselId={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
-    const lsel=document.getElementById(lselId[h.service_type]||'w1-lang');
-    if(lsel)lsel.value=h.lang;
-  }
-  wantGuideId = h.guide_id || null;
-  const gs=document.getElementById('guide-search'); if(gs) gs.value='';
-  refreshGuides();
+  removeGuideWarning();
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=(v==null?'':v);};
+  ['f-date','f-meet','f-end-guide','f-car','f-car2','f-walk-end','f-end2'].forEach(id=>set(id,''));
+
+  const st=h.service_type||'walk1';
+  // Language first, then setSvc — so the price box is calculated with the right language
+  if(h.lang && LANG_SEL[st]) set(LANG_SEL[st], h.lang);
+  setSvc(st);
+
+  set('f-date',h.date);
+  set('f-meet',h.meeting);
+  set('f-end-guide',h.end_guide);
+  // Combo stores the car meeting in f-car2, GCT / GCT-auto in f-car
+  set(st==='combo'?'f-car2':'f-car', h.car_meeting);
+  set('f-walk-end',h.walk_end);
+  set('f-end2',h.end2);
+  set('f-pay',h.payment||'FAKTURA NA ETRAVEL');
+  document.getElementById('f-sender').value=h.sender_key||'';
+  onSender();
+
   let cl=[];try{cl=JSON.parse(h.clients||'[]');}catch{}
   if(cl.length)cl.forEach(c=>addClient(c));else addClient();
+  updatePrices();
+
+  const dd=document.getElementById('date-display');
+  if(dd) dd.textContent=h.date?'📅 '+fmtDate(h.date):'';
+}
+
+function openAmend(id, h){
+  if(!h){ alert('Chyba: zaznam nenajdeny. Obnov stranku (F5) a skus znova.'); return; }
+  if(h.is_storno && !confirm('Tato objednavka je stornovana. Chces ju aj tak upravit?')) return;
+  amendId=id; stornoId=null;
+  fillFormFromBooking(h);
+  // Keep the original guide selected (nav('compose') below reloads the guide list)
+  wantGuideId = h.guide_id!=null ? String(h.guide_id) : null;
+  document.getElementById('guide-search').value='';
   document.getElementById('abanner').style.display='flex';
   document.getElementById('c-title').textContent='Zmena objednavky';
   document.getElementById('c-sub').textContent='Upravujes objednavku z '+(h.date?fmtDate(h.date):'—')+'.';
@@ -1713,43 +1745,17 @@ function openAmend(id, h){
 
 async function openCopyNew(h){
   if(!h){ alert('Chyba: zaznam nenajdeny. Obnov stranku (F5) a skus znova.'); return; }
-  if(!confirm('Skopirovat ako novu objednavku?')) return;
+  if(!confirm('Skopirovat ako novu objednavku? Povodna objednavka ostane v historii.')) return;
 
-  // Delete old booking
-  try {
-    await SB.from('bookings').delete().eq('id', h.id);
-    historyCache = historyCache.filter(x => x.id !== h.id);
-  } catch(e){ console.error('Delete error:', e); }
-
-  cIds=[];cCnt=0;cData={};lastTxt='';lastSubj='';
+  // The original booking is kept — the copy is saved as a new one with "Ulozit do historie".
   amendId=null; stornoId=null;
-  document.getElementById('clist').innerHTML='';
-  document.getElementById('out').style.display='none';
-  document.getElementById('out-acts').style.display='none';
-  if(h.date){document.getElementById('f-date').value=h.date;updateDateDisplay();}
-  if(h.meeting)document.getElementById('f-meet').value=h.meeting;
-  if(h.end_guide)document.getElementById('f-end-guide').value=h.end_guide||'';
-  if(h.duration)document.getElementById('f-dur').value=h.duration;
-  if(h.payment)document.getElementById('f-pay').value=h.payment;
-  if(h.car_meeting){const el=document.getElementById('f-car')||document.getElementById('f-car2');if(el)el.value=h.car_meeting;}
-  if(h.walk_end)document.getElementById('f-walk-end').value=h.walk_end||'';
-  if(h.end2)document.getElementById('f-end2').value=h.end2||'';
-  if(h.sender_key){document.getElementById('f-sender').value=h.sender_key;onSender();}
-  if(h.service_type)setSvc(h.service_type);
-  if(h.lang){
-    const lselId={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
-    const lsel=document.getElementById(lselId[h.service_type]||'w1-lang');
-    if(lsel)lsel.value=h.lang;
-  }
+  fillFormFromBooking(h);
+  // Clear guide — user must select new one
   wantGuideId=null;
-  refreshGuides().then(()=>{
-    // Clear guide — user must select new one
-    document.getElementById('f-guide').value='';
-    document.getElementById('guide-search').value='';
-    document.getElementById('guide-info').style.display='none';
-  });
-  let cl=[];try{cl=JSON.parse(h.clients||'[]');}catch{}
-  if(cl.length)cl.forEach(c=>addClient(c));else addClient();
+  document.getElementById('f-guide').value='';
+  document.getElementById('guide-search').value='';
+  document.getElementById('guide-info').style.display='none';
+  removeGuideWarning();
   document.getElementById('abanner').style.display='none';
   document.getElementById('c-title').textContent='Nova objednavka (kopirovat)';
   document.getElementById('c-sub').textContent='Detaily su vyplnene z povodnej objednavky. Zmen guide a odosli.';
@@ -1762,20 +1768,20 @@ async function openStorno(id, h){
   if(h.is_storno){ alert('Tato objednavka je uz stornovana — neda sa stornovat znova.'); return; }
   if(!confirm('Vygenerovat storno celej objednavky?')) return;
 
-  stornoId = id;
   if(h.sender_key){ document.getElementById('f-sender').value=h.sender_key; onSender(); }
-  // Restore guide
-  if(h.guide_id){
-    wantGuideId=h.guide_id;
-    refreshGuides();
-  }
-
   const sender = getSender();
   if(!sender){ alert('Vyber objednavatela v compose.'); nav('compose'); return; }
 
+  stornoId = id;
+  // Restore guide
+  if(h.guide_id!=null){
+    wantGuideId=String(h.guide_id);
+    refreshGuides();
+  }
+
   const date = h.date ? fmtDate(h.date) : '-';
   const guideName = h.guide_name || 'Guide';
-  const guideEmail = (guidesCache.find(x=>x.id===h.guide_id)||{}).email || '';
+  const guideEmail = (guidesCache.find(x=>sameId(x.id,h.guide_id))||{}).email || '';
 
   let clients = [];
   try{ clients = JSON.parse(h.clients||'[]'); }catch{}
@@ -1823,7 +1829,7 @@ async function openStorno(id, h){
   const subj = 'Storno objednavky, '+guideName+', '+date+(clientParts.length?', '+clientParts.slice(0,2).join(' | '):'');
 
   await SB.from('bookings').update({is_storno:true, text:txt, subject:subj}).eq('id',id);
-  const idx=historyCache.findIndex(x=>x.id===id);
+  const idx=historyCache.findIndex(x=>sameId(x.id,id));
   if(idx!==-1) historyCache[idx].is_storno=true;
 
   lastTxt=txt; lastSubj=subj;
@@ -1925,7 +1931,7 @@ async function confirmPartialStorno(){
 
   const date = h.date ? fmtDate(h.date) : '-';
   const guideName = h.guide_name || 'Guide';
-  const guideEmail = (guidesCache.find(x=>x.id===h.guide_id)||{}).email || '';
+  const guideEmail = (guidesCache.find(x=>sameId(x.id,h.guide_id))||{}).email || '';
 
   const svcDurMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'3 hod',combo:'3 hod','gct-auto':'3 hod',wine:'6 hod',devin:'5 hod'};
   const svcLblMap={
@@ -1992,11 +1998,7 @@ async function confirmPartialStorno(){
   const subj = 'Zmena objednavky, '+guideName+', '+date+', '+stornoPart;
 
   // Update booking in DB — mark storno clients
-  const updatedClients = clients.map(c=>{
-    const idx = activeClients.indexOf(c);
-    if(stornoClients.includes(activeClients[idx])) return {...c, cancelled:true};
-    return c;
-  });
+  const updatedClients = clients.map(c=>stornoClients.includes(c) ? {...c, cancelled:true} : c);
   await SB.from('bookings').update({
     clients: JSON.stringify(updatedClients),
     client_names: JSON.stringify(remainingClients.map(c=>c.name).filter(Boolean)),
@@ -2005,7 +2007,7 @@ async function confirmPartialStorno(){
   }).eq('id', id);
 
   // Update cache
-  const idx = historyCache.findIndex(x=>x.id===id);
+  const idx = historyCache.findIndex(x=>sameId(x.id,id));
   if(idx!==-1){
     historyCache[idx].clients = JSON.stringify(updatedClients);
     historyCache[idx].client_names = JSON.stringify(remainingClients.map(c=>c.name).filter(Boolean));
@@ -2025,8 +2027,8 @@ async function confirmPartialStorno(){
   nav('compose');
   // Restore sender and guide
   if(h.sender_key){ document.getElementById('f-sender').value=h.sender_key; onSender(); }
-  if(h.guide_id){
-    wantGuideId=h.guide_id;
+  if(h.guide_id!=null){
+    wantGuideId=String(h.guide_id);
     refreshGuides();
   }
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
@@ -2045,12 +2047,10 @@ function calcPriceForService(serviceType, lang, pax){
   return 0;
 }
 
+// "Zrusit" in the amend banner = discard the amendment and start a clean new email.
+// (Before, the old data stayed in the form with amendId=null, so saving created a duplicate booking.)
 function exitAmend(){
-  amendId=null;
-  document.getElementById('abanner').style.display='none';
-  document.getElementById('c-title').textContent='Novy email';
-  document.getElementById('c-sub').textContent='Vypln detaily, vyber objednavatela a odosli do Outlooku jednym klikom.';
-  document.getElementById('gen-lbl').textContent='Vygenerovat email';
+  resetForm();
 }
 
 // ── Guide Availability ────────────────────────────────────
@@ -2061,11 +2061,13 @@ function removeGuideWarning(){
   if(w) w.remove();
 }
 
+let availCheckSeq = 0;
 async function checkGuideAvailability(){
   removeGuideWarning();
   const guideId = document.getElementById('f-guide').value;
   const date = gv('f-date');
-  if(!guideId || !date) return;
+  if(!guideId || !date || !SB) return;
+  const mySeq = ++availCheckSeq;
 
   const guideName = getGuideName();
   const warnings = [];
@@ -2082,28 +2084,34 @@ async function checkGuideAvailability(){
     }
   } catch(e){}
 
-  // 2. Check existing bookings on same date
+  // 2. Check existing bookings on same date (not the booking being amended,
+  //    and is_storno NULL counts as "not storno")
   const meetTime = gv('f-meet').substring(0,5).trim();
   try {
-    const {data} = await SB.from('bookings')
+    let q = SB.from('bookings')
       .select('id,date,meeting,service_type,client_names,is_storno')
       .eq('guide_id', guideId)
       .eq('date', date)
-      .eq('is_storno', false);
+      .not('is_storno', 'is', true);
+    if(amendId) q = q.neq('id', amendId);
+    const {data} = await q;
     if(data && data.length){
       data.forEach(b=>{
         const bTime = (b.meeting||'').substring(0,5).trim();
         let cn=[]; try{cn=JSON.parse(b.client_names||'[]');}catch{}
         const clientStr = cn.slice(0,2).join(', ')||'—';
         if(meetTime && bTime && meetTime===bTime){
-          warnings.push('⚠️ <strong>'+esc(guideName)+'</strong> má v tento deň objednávku o rovnakom čase <strong>'+bTime+'</strong> · '+esc(clientStr));
+          warnings.push('⚠️ <strong>'+esc(guideName)+'</strong> má v tento deň objednávku o rovnakom čase <strong>'+esc(bTime)+'</strong> · '+esc(clientStr));
         } else {
-          warnings.push('ℹ️ <strong>'+esc(guideName)+'</strong> má v tento deň ďalšiu objednávku'+(bTime?' o <strong>'+bTime+'</strong>':'')+' · '+esc(clientStr));
+          warnings.push('ℹ️ <strong>'+esc(guideName)+'</strong> má v tento deň ďalšiu objednávku'+(bTime?' o <strong>'+esc(bTime)+'</strong>':'')+' · '+esc(clientStr));
         }
       });
     }
   } catch(e){}
 
+  // A newer check started meanwhile (guide/date changed again) — drop this result
+  if(mySeq !== availCheckSeq) return;
+  removeGuideWarning();
   if(!warnings.length) return;
 
   // Show warning banner under guide card
@@ -2230,7 +2238,8 @@ let historyPage = 1;
 const HISTORY_PER_PAGE = 50;
 
 function getFromCache(id){
-  const found = historyCache.find(x=>x.id===id);
+  // id comes from an HTML attribute (string) — DB id may be a number
+  const found = historyCache.find(x=>sameId(x.id,id));
   if(!found) alert('Chyba: zaznam nenajdeny v cache. Skus obnovit historiu (F5).');
   return found || null;
 }
@@ -2311,6 +2320,9 @@ function filterHistory(){
     let cn=[]; try{cn=JSON.parse(h.client_names||'[]');}catch{}
     const stMap={walk1:'1 hod',walk15:'1,5 hod',walk2:'2 hod',walk3:'3 hod',gct:'GCT',combo:'Combo','gct-auto':'GCT Auto',wine:'Vinny okruh',devin:'GCT+Devin'};
     const st=stMap[h.service_type]||'Walking';
+    // Language of the booked tour (GCT vlastne auto is always English)
+    const hLang=h.service_type==='gct-auto'?'EN':(h.lang||'');
+    const langPill=hLang?'<span class="pill" style="margin-left:4px;background:var(--accent-l);color:var(--accent);" title="'+esc(LANG_SK[hLang]||hLang)+'">🗣 '+esc(LANG_SK[hLang]||hLang)+'</span>':'';
     // Check if any client has tickets
     let cn2=[]; try{cn2=JSON.parse(h.clients||'[]');}catch{}
     const hasTickets = ['walk1','gct','combo','gct-auto'].includes(h.service_type) && cn2.some(c=>c.ticket_tam||c.ticket_spat);
@@ -2331,7 +2343,7 @@ function filterHistory(){
     return `<div class="hi">
       <div class="hd">${h.date?fmtDate(h.date):'—'}<br>${new Date(h.created_at).toLocaleTimeString('sk-SK',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:var(--text3);font-size:10px;">${esc(h.sender_name||'')}</span></div>
       <div class="hinfo">
-        <div class="hg">${guideDisplay} <span class="pill pb">${st}</span>${h.is_amendment?'<span class="pill pw" style="margin-left:4px;">zmena</span>':''}${h.is_storno?'<span class="pill" style="margin-left:4px;background:var(--danger-l);color:var(--danger);">STORNO</span>':''}</div>
+        <div class="hg">${guideDisplay} <span class="pill pb">${st}</span>${langPill}${h.is_amendment?'<span class="pill pw" style="margin-left:4px;">zmena</span>':''}${h.is_storno?'<span class="pill" style="margin-left:4px;background:var(--danger-l);color:var(--danger);">STORNO</span>':''}</div>
         <div class="hc">${clientDisplay}</div>
       </div>
       <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
@@ -2396,7 +2408,8 @@ async function deleteBooking(id){
   try{
     const{error}=await SB.from('bookings').delete().eq('id',id);
     if(error){alert('Chyba: '+error.message);return;}
-    historyCache=historyCache.filter(h=>h.id!==id);
+    historyCache=historyCache.filter(h=>!sameId(h.id,id));
+    if(sameId(amendId,id)) resetForm();
     filterHistory();
   }catch(e){alert('Chyba mazania: '+e.message);}
 }
@@ -2583,7 +2596,7 @@ function exportTicketsExcel(){
 
     // Create CSV
     const csv = rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+    const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href=url; a.download='cestovne-listky-'+new Date().toISOString().substring(0,10)+'.csv';
@@ -2677,7 +2690,7 @@ async function doTicketStorno(bookingId, clientIdx, type){
   if(type==='all'||type==='spat') c.ticket_spat_storno=true;
   try {
     await SB.from('bookings').update({clients:JSON.stringify(clients)}).eq('id',bookingId);
-    const idx=historyCache.findIndex(x=>x.id===bookingId);
+    const idx=historyCache.findIndex(x=>sameId(x.id,bookingId));
     if(idx!==-1) historyCache[idx].clients=JSON.stringify(clients);
     document.getElementById('ticket-storno-modal').remove();
     showNotif('✅ Listok stornovany','Zmena ulozena.',null);
@@ -2879,24 +2892,15 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
   if(!amendId){
     cIds=[];cCnt=0;cData={};
     document.getElementById('clist').innerHTML='';
-    setSvc(tourType);
-    // Set language
-    const lMap={walk1:'w1-lang',walk15:'w15-lang',walk2:'w2-lang',walk3:'w3-lang',gct:'gct-lang',combo:'combo-lang','gct-auto':'combo-lang',wine:'wine-lang',devin:'devin-lang'};
-    const lsel=document.getElementById(lMap[tourType]||'w1-lang');
+    // Set language first, then service type (so the price box uses the right language)
+    const lsel=document.getElementById(LANG_SEL[tourType]||'w1-lang');
     if(lsel&&lang) lsel.value=lang;
+    setSvc(tourType);
   }
 
-  // Step 2: Add or update client
-  let targetId;
-  if(amendId && cIds.length > 0){
-    // In amend mode — add new client from Bokun
-    addClient();
-    targetId = cIds[cIds.length-1];
-  } else {
-    // New booking — add fresh client
-    addClient();
-    targetId = cIds[cIds.length-1];
-  }
+  // Step 2: Add a client (in amend mode it is added to the existing clients)
+  addClient();
+  const targetId = cIds[cIds.length-1];
 
   if(targetId){
     const cnEl=document.getElementById('cn'+targetId);
@@ -2926,16 +2930,19 @@ function applyBokunData({customer,voucher,pax,isoDate,time,lang,tourType,isVienn
       document.getElementById('f-date').value=isoDate;
       updateDateDisplay();
     }
-    if(isViennaTour){
-      document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
-      document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
-    } else if(time && !amendId){
-      document.getElementById('f-meet').value=time;
+    // In amend mode keep the existing meeting point / payment of the booking
+    if(!amendId){
+      if(isViennaTour){
+        document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
+        document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
+      } else if(time){
+        document.getElementById('f-meet').value=time;
+      }
+      document.getElementById('f-pay').value='FAKTURA NA ETRAVEL';
     }
-    document.getElementById('f-pay').value='FAKTURA NA ETRAVEL';
     updatePrices();
     // Force Vienna fields one more time after everything settles
-    if(isViennaTour){
+    if(isViennaTour && !amendId){
       setTimeout(()=>{
         document.getElementById('f-meet').value='12:00 z pred PARK INN DANUBE';
         document.getElementById('f-end-guide').value='13:00 v Pulitzer SNP';
